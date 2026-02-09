@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manifold · Calibration</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: rgb(128, 128, 128);
+            --accent: #00ffcc;
+            --accent-dim: rgba(0, 255, 204, 0.1);
+            --accent-glow: rgba(0, 255, 204, 0.25);
+            --surface: rgba(0, 0, 0, 0.45);
+            --border: rgba(255,255,255,0.08);
+            --text-primary: rgba(255,255,255,0.92);
+            --text-secondary: rgba(255,255,255,0.45);
+            --text-tertiary: rgba(255,255,255,0.22);
+            --error: #ff5c5c;
+            --font-display: 'DM Sans', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-display);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            height: 100dvh;
+            margin: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Main Card ──────────────────────────────────────────── */
+
+        #cal-box {
+            background: var(--surface);
+            backdrop-filter: blur(40px) saturate(1.2);
+            -webkit-backdrop-filter: blur(40px) saturate(1.2);
+            padding: 2.5rem;
+            border-radius: 36px;
+            text-align: center;
+            width: 500px;
+            min-height: 620px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+
+        /* ── Steps ──────────────────────────────────────────────── */
+
+        .step { display: none; flex-direction: column; flex: 1; justify-content: space-between; }
+        .active { display: flex; }
+
+        .step h2 {
+            font-family: var(--font-display);
+            font-weight: 500;
+            font-size: 1.15rem;
+            letter-spacing: 0.5px;
+            margin: 0 0 6px;
+        }
+        .step-num {
+            font-family: var(--font-mono);
+            font-size: 0.6rem;
+            font-weight: 400;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--text-tertiary);
+            margin-bottom: 6px;
+        }
+        .step-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            max-width: 380px;
+            margin: 0 auto;
+        }
+
+        /* ── Step Dots ──────────────────────────────────────────── */
+
+        .step-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 20px; }
+        .step-dot {
+            width: 24px; height: 3px;
+            border-radius: 2px;
+            background: rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+        .step-dot.done { background: var(--accent); opacity: 0.5; }
+        .step-dot.current { background: var(--accent); width: 32px; }
+
+        /* ── Card Sandbox ───────────────────────────────────────── */
+
+        #card-sandbox {
+            width: 100%; height: 260px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border);
+        }
+        #card-shape {
+            width: 300px; height: 189px;
+            background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
+            border-radius: 10px;
+            border: 1px solid rgba(0,0,0,0.15);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+            flex-shrink: 0;
+        }
+
+        /* ── Range Sliders ──────────────────────────────────────── */
+
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            outline: none;
+            margin: 16px 0 8px;
+            cursor: pointer;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            box-shadow: 0 0 12px var(--accent-glow);
+            border: 2px solid rgba(0,0,0,0.2);
+        }
+        input[type=range]::-moz-range-thumb {
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: 2px solid rgba(0,0,0,0.2);
+        }
+
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            font-family: var(--font-mono);
+            font-size: 0.55rem;
+            letter-spacing: 1px;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+        }
+        .slider-labels .val { color: var(--text-secondary); }
+
+        /* ── Inputs ─────────────────────────────────────────────── */
+
+        input[type=number], select {
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1.5px solid var(--border);
+            background: rgba(0,0,0,0.3);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+        input[type=number]:focus, select:focus {
+            border-color: var(--accent);
+        }
+        input[type=number].invalid {
+            border-color: var(--error);
+        }
+        select {
+            cursor: pointer;
+        }
+        select option {
+            background: #222;
+            color: white;
+        }
+
+        /* ── Checkbox ───────────────────────────────────────────── */
+
+        .check-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        .check-row input[type=checkbox] {
+            width: 18px; height: 18px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        /* ── Buttons ────────────────────────────────────────────── */
+
+        button {
+            border: none;
+            border-radius: 24px;
+            font-family: var(--font-display);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            letter-spacing: 0.3px;
+        }
+        .btn-primary {
+            background: white;
+            color: #0a0a0c;
+            padding: 13px 36px;
+            font-size: 0.85rem;
+        }
+        .btn-primary:hover { background: var(--accent); }
+        .btn-back {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            padding: 10px 24px;
+            font-size: 0.8rem;
+        }
+        .btn-back:hover { border-color: rgba(255,255,255,0.2); color: var(--text-primary); }
+        .btn-start {
+            background: var(--accent);
+            color: #0a0a0c;
+            padding: 16px 48px;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+        .btn-start:hover { box-shadow: 0 0 30px var(--accent-glow); }
+
+        .footer-nav { padding-top: 24px; display: flex; justify-content: center; gap: 10px; align-items: center; }
+
+        /* ── Error Text ─────────────────────────────────────────── */
+
+        .error-msg {
+            color: var(--error);
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            min-height: 1em;
+            margin-top: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        /* ── Summary Table ──────────────────────────────────────── */
+
+        .summary-table { text-align: left; margin: 0 auto; line-height: 2.4; }
+        .summary-table .label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-right: 8px;
+        }
+        .summary-table .val {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--accent);
+        }
+        .summary-warning {
+            color: var(--error);
+            font-family: var(--font-mono);
+            font-size: 0.6rem;
+            margin-top: 6px;
+            letter-spacing: 0.3px;
+            max-width: 350px;
+        }
+
+        /* ── Existing Cal Banner ────────────────────────────────── */
+
+        .existing-banner {
+            background: var(--accent-dim);
+            border: 1px solid rgba(0,255,204,0.15);
+            border-radius: 12px;
+            padding: 10px 16px;
+            margin-bottom: 16px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .existing-banner a { color: var(--accent); text-decoration: none; font-weight: 500; }
+        .existing-banner a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+<div id="cal-box">
+
+    <div class="step-dots">
+        <div class="step-dot current" id="sd1"></div>
+        <div class="step-dot" id="sd2"></div>
+        <div class="step-dot" id="sd3"></div>
+        <div class="step-dot" id="sd4"></div>
+    </div>
+
+    <div class="existing-banner" id="existing-banner" style="display:none;">
+        Calibration data found. <a href="index.html">Skip to test →</a>
+    </div>
+
+    <!-- ─── Step 1 ────────────────────────────────────────────── -->
+    <div id="step1" class="step active">
+        <div>
+            <div class="step-num">Step 01 of 04</div>
+            <h2>Luminance Calibration</h2>
+            <p class="step-desc">Adjust until the inner circle disappears into the checkerboard pattern.</p>
+        </div>
+        <div style="flex:1; display:flex; align-items:center; justify-content:center;">
+            <div style="width:170px; height:170px; border-radius:50%; background-image: conic-gradient(#000 0.25turn, #fff 0.25turn 0.5turn, #000 0.5turn 0.75turn, #fff 0.75turn); background-size: 2px 2px; display:flex; align-items:center; justify-content:center;">
+                <div id="inner-circle" style="width:75px; height:75px; border-radius:50%; background:rgb(128,128,128);"></div>
+            </div>
+        </div>
+        <div>
+            <input type="range" id="gamma-slider" min="60" max="220" value="128">
+            <div class="slider-labels">
+                <span>Darker</span><span class="val" id="gamma-readout">128</span><span>Brighter</span>
+            </div>
+        </div>
+        <div class="footer-nav">
+            <button class="btn-primary" onclick="goStep(2)">Next →</button>
+        </div>
+    </div>
+
+    <!-- ─── Step 2 ────────────────────────────────────────────── -->
+    <div id="step2" class="step">
+        <div>
+            <div class="step-num">Step 02 of 04</div>
+            <h2>Physical Scale</h2>
+            <p class="step-desc">Hold a credit card to the screen. Match the rectangle to the card's width.</p>
+        </div>
+        <div id="card-sandbox"><div id="card-shape"></div></div>
+        <div>
+            <input type="range" id="size-slider" min="150" max="750" step="0.1" value="300">
+            <div class="slider-labels">
+                <span>Smaller</span><span class="val"><span id="size-readout">300</span> px</span><span>Larger</span>
+            </div>
+        </div>
+        <div class="footer-nav">
+            <button class="btn-back" onclick="goStep(1)">← Back</button>
+            <button class="btn-primary" onclick="goStep(3)">Next →</button>
+        </div>
+    </div>
+
+    <!-- ─── Step 3 ────────────────────────────────────────────── -->
+    <div id="step3" class="step">
+        <div>
+            <div class="step-num">Step 03 of 04</div>
+            <h2>Viewing Distance</h2>
+            <p class="step-desc">Enter the distance from the patient's eyes to the display.</p>
+        </div>
+        <div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:24px;">
+            <div>
+                <input type="number" id="dist-val" value="" min="0.1" step="0.1" placeholder="e.g. 5" style="width:80px; text-align:center;">
+                <select id="dist-unit">
+                    <option value="ft">feet</option>
+                    <option value="m">meters</option>
+                    <option value="cm">cm</option>
+                    <option value="in">inches</option>
+                </select>
+                <div class="error-msg" id="dist-error"></div>
+            </div>
+            <label class="check-row">
+                <input type="checkbox" id="mirror-mode">
+                Mirror setup (invert X-axis)
+            </label>
+            <p style="font-size:0.7rem; color:var(--text-tertiary); max-width:320px; margin:0 auto; line-height:1.5;">
+                Enable mirror mode when the patient views the display through a front-surface mirror.
+            </p>
+        </div>
+        <div class="footer-nav">
+            <button class="btn-back" onclick="goStep(2)">← Back</button>
+            <button class="btn-primary" onclick="validateAndPreview()">Review →</button>
+        </div>
+    </div>
+
+    <!-- ─── Step 4 ────────────────────────────────────────────── -->
+    <div id="step4" class="step">
+        <div>
+            <div class="step-num">Step 04 of 04</div>
+            <h2>Confirm Settings</h2>
+        </div>
+        <div style="flex:1; display:flex; align-items:center; justify-content:center;">
+            <div class="summary-table">
+                <div><span class="label">Gamma Grey</span><span class="val" id="sum-gamma">128</span></div>
+                <div><span class="label">Display Scale</span><span class="val" id="sum-pxmm">–</span> <span style="font-size:0.65rem; color:var(--text-tertiary);">px/mm</span></div>
+                <div><span class="label">Distance</span><span class="val" id="sum-dist">–</span></div>
+                <div><span class="label">Mirror</span><span class="val" id="sum-mirror">Off</span></div>
+                <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
+                    <span class="label">Angular Resolution</span><span class="val" id="sum-ppd">–</span>
+                </div>
+                <div class="summary-warning" id="sum-warning"></div>
+            </div>
+        </div>
+        <div class="footer-nav">
+            <button class="btn-back" onclick="goStep(3)">← Back</button>
+            <button class="btn-start" onclick="saveAndStart()">Start Test ▶</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const gammaSlider = document.getElementById('gamma-slider');
+    const sizeSlider  = document.getElementById('size-slider');
+    const innerCircle = document.getElementById('inner-circle');
+    const cardShape   = document.getElementById('card-shape');
+    const distInput   = document.getElementById('dist-val');
+    const distUnit    = document.getElementById('dist-unit');
+    const distError   = document.getElementById('dist-error');
+    const mirrorCheck = document.getElementById('mirror-mode');
+
+    // Existing calibration
+    const ePx = parseFloat(localStorage.getItem('user_px_per_mm'));
+    const eD  = parseFloat(localStorage.getItem('user_distance_mm'));
+    if (!isNaN(ePx) && !isNaN(eD) && ePx > 0 && eD > 0) {
+        document.getElementById('existing-banner').style.display = 'block';
+        const eG = localStorage.getItem('user_gamma_grey');
+        if (eG) gammaSlider.value = eG;
+        sizeSlider.value = ePx * 85.6;
+        distInput.value = (eD / 304.8).toFixed(1);
+        distUnit.value = 'ft';
+        mirrorCheck.checked = localStorage.getItem('mirror_mode') === 'true';
+    }
+
+    updateGamma(); updateSize();
+    gammaSlider.oninput = updateGamma;
+    sizeSlider.oninput  = updateSize;
+
+    function updateGamma() {
+        const v = gammaSlider.value;
+        innerCircle.style.backgroundColor = `rgb(${v},${v},${v})`;
+        document.getElementById('gamma-readout').textContent = v;
+    }
+    function updateSize() {
+        const px = parseFloat(sizeSlider.value);
+        cardShape.style.width = px + 'px';
+        cardShape.style.height = (px / 1.585) + 'px';
+        document.getElementById('size-readout').textContent = px.toFixed(0);
+    }
+
+    let currentStep = 1;
+    function goStep(n) {
+        currentStep = n;
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+        document.getElementById('step' + n).classList.add('active');
+        for (let i = 1; i <= 4; i++) {
+            const d = document.getElementById('sd' + i);
+            d.classList.remove('done', 'current');
+            if (i < n) d.classList.add('done');
+            else if (i === n) d.classList.add('current');
+        }
+    }
+
+    function distToMm() {
+        const v = parseFloat(distInput.value);
+        if (isNaN(v)) return NaN;
+        const m = { ft: 304.8, m: 1000, cm: 10, 'in': 25.4 };
+        return v * (m[distUnit.value] || NaN);
+    }
+
+    function validateAndPreview() {
+        distInput.classList.remove('invalid');
+        distError.textContent = '';
+        const raw = distInput.value.trim();
+        if (!raw) { err('Enter a viewing distance.'); return; }
+        const val = parseFloat(raw);
+        if (isNaN(val)) { err('Enter a valid number.'); return; }
+        if (val <= 0) { err('Must be greater than zero.'); return; }
+        const mm = distToMm();
+        if (mm < 200) { err('Too close — minimum ~20 cm.'); return; }
+        if (mm > 20000) { err('Too far for screen-based testing.'); return; }
+
+        const pxPerMm = parseFloat(sizeSlider.value) / 85.6;
+        const ppd = mm * 0.017455 * pxPerMm;
+        const labels = { ft:'ft', m:'m', cm:'cm', 'in':'in' };
+
+        document.getElementById('sum-gamma').textContent = gammaSlider.value;
+        document.getElementById('sum-pxmm').textContent = pxPerMm.toFixed(3);
+        document.getElementById('sum-dist').textContent = `${val} ${labels[distUnit.value]}  (${(mm/1000).toFixed(2)} m)`;
+        document.getElementById('sum-mirror').textContent = mirrorCheck.checked ? 'On' : 'Off';
+
+        const ppdEl = document.getElementById('sum-ppd');
+        ppdEl.textContent = ppd.toFixed(1) + ' px/°';
+        ppdEl.style.color = ppd < 10 ? 'var(--error)' : 'var(--accent)';
+
+        const w = document.getElementById('sum-warning');
+        w.textContent = ppd < 10 ? '⚠ Low resolution — high frequencies may alias.' : '';
+        goStep(4);
+    }
+
+    function err(msg) {
+        distInput.classList.add('invalid');
+        distError.textContent = msg;
+        distInput.focus();
+    }
+
+    function saveAndStart() {
+        const mm = distToMm();
+        localStorage.setItem('user_gamma_grey', gammaSlider.value);
+        localStorage.setItem('user_px_per_mm', parseFloat(sizeSlider.value) / 85.6);
+        localStorage.setItem('user_distance_mm', mm);
+        localStorage.setItem('mirror_mode', mirrorCheck.checked);
+        localStorage.setItem('cal_timestamp', new Date().toISOString());
+        window.location.href = 'index.html';
+    }
+
+    distInput.addEventListener('input', () => { distInput.classList.remove('invalid'); distError.textContent = ''; });
+</script>
+</body>
+</html>

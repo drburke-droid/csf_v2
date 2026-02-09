@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manifold</title>
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+
+    <!-- Calibration Guard -->
+    <div id="cal-guard" style="display:none;">
+        <h2>Calibration Required</h2>
+        <p>Display calibration is needed for accurate measurement. Connect your phone to begin setup.</p>
+        <button onclick="window.location.href='calibration.html'">Begin Calibration</button>
+    </div>
+
+    <!-- QR Sync Overlay -->
+    <div id="sync-overlay">
+        <div class="sync-title">Manifold</div>
+        <div class="sync-subtitle">Contrast Sensitivity Function</div>
+        <div id="qrcode"></div>
+        <div class="sync-subtitle">Scan with your phone to connect</div>
+        <button class="sync-dismiss-btn" onclick="document.getElementById('sync-overlay').style.display='none'">
+            Use Keyboard Instead
+        </button>
+    </div>
+
+    <!-- Display Frame -->
+    <div class="display-frame" id="mirror-target">
+        <canvas id="stimCanvas" width="600" height="600"></canvas>
+        <div class="hud">
+            <span class="hud-mode" id="mode-label">—</span>
+            <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+            <span class="hud-progress" id="live-progress">0 / 50</span>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results-overlay">
+        <div id="result-content">
+            <div class="result-eyebrow">Area Under Log CSF</div>
+            <div class="auc-value" id="final-auc">0.00</div>
+            <div class="rank-label" id="final-rank">—</div>
+            <div class="result-detail" id="final-detail"></div>
+            <canvas id="csf-plot" width="520" height="280" style="margin-top:40px; border-radius:8px;"></canvas>
+            <button class="restart-btn" onclick="location.reload()">Test Again</button>
+        </div>
+    </div>
+
+    <!-- Gear -->
+    <div id="gear-btn" onclick="window.location.href='calibration.html'">⚙</div>
+    <div id="stale-cal-warning" onclick="window.location.href='calibration.html'">
+        Calibration >24h old — recalibrate
+    </div>
+
+    <!-- Dependencies -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"
+            onerror="console.warn('PeerJS failed.')"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
+            onerror="console.warn('QRCode failed.')"></script>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
