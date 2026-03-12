@@ -16,10 +16,10 @@ body{background:#0a0a0c;font-family:var(--f);color:var(--t1);-webkit-font-smooth
 
 /* ─── Layout (all scoped under .csf-explorer-root) ─── */
 .csf-explorer-root .page{max-width:1200px;width:100%;display:flex;flex-direction:column;align-items:center;gap:clamp(16px,3vh,28px)}
-.csf-explorer-root .header{text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;opacity:0;animation:settleUp var(--settle) var(--ez) .05s forwards;position:static}
-.csf-explorer-root .brand{font-family:var(--m);font-size:.7rem;letter-spacing:4px;text-transform:uppercase;color:var(--t3)}
-.csf-explorer-root .title{font-size:clamp(1.6rem,4vw,2.6rem);font-weight:200;line-height:1.15;letter-spacing:-.02em;position:static}
-.csf-explorer-root .subtitle{font-size:clamp(.7rem,1.2vw,.88rem);color:var(--t2);max-width:520px;line-height:1.6;font-weight:300;position:static}
+.csf-explorer-root .csfe-header{text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;opacity:0;animation:settleUp var(--settle) var(--ez) .05s forwards;position:static}
+.csf-explorer-root .csfe-brand{font-family:var(--m);font-size:.7rem;letter-spacing:4px;text-transform:uppercase;color:var(--t3)}
+.csf-explorer-root .csfe-title{font-size:clamp(1.6rem,4vw,2.6rem);font-weight:200;line-height:1.15;letter-spacing:-.02em;position:static}
+.csf-explorer-root .csfe-subtitle{font-size:clamp(.7rem,1.2vw,.88rem);color:var(--t2);max-width:520px;line-height:1.6;font-weight:300;position:static}
 
 /* ─── Formula bar (patient mode) ─── */
 .csf-explorer-root .formula-bar{display:none;align-items:center;justify-content:center;gap:24px;font-family:var(--m);font-size:.78rem;color:var(--t2);padding:10px 20px;border-radius:10px;border:1px solid var(--b2);background:var(--s1);opacity:0;animation:settleUp var(--settle) var(--ez) .15s forwards}
@@ -98,10 +98,10 @@ body.mode-demo .csf-explorer-root .demo-banner{display:flex}
 /* ─── Embed mode ─── */
 body.embed{padding:10px 10px 20px;min-height:0;background:#0a0a0c}
 body.embed .csf-explorer-root .page{max-width:100%;gap:clamp(10px,2vh,18px)}
-body.embed.mode-demo .csf-explorer-root .header{display:none}
-body.embed .csf-explorer-root .header{animation:none;opacity:1;gap:4px}
-body.embed .csf-explorer-root .title{font-size:clamp(1.1rem,3vw,1.6rem)}
-body.embed .csf-explorer-root .subtitle{font-size:clamp(.6rem,1vw,.75rem);max-width:480px}
+body.embed.mode-demo .csf-explorer-root .csfe-header{display:none}
+body.embed .csf-explorer-root .csfe-header{animation:none;opacity:1;gap:4px}
+body.embed .csf-explorer-root .csfe-title{font-size:clamp(1.1rem,3vw,1.6rem)}
+body.embed .csf-explorer-root .csfe-subtitle{font-size:clamp(.6rem,1vw,.75rem);max-width:480px}
 body.embed .csf-explorer-root .formula-bar{padding:6px 14px;font-size:.72rem}
 body.embed .csf-explorer-root .demo-banner{padding:10px 16px}
 body.embed .csf-explorer-root .demo-banner-text{font-size:.75rem}
@@ -142,10 +142,10 @@ body.embed .csf-explorer-root .ref-section{padding-top:clamp(10px,2vw,16px)}
 </head><body>
 <div class="csf-explorer-root">
 <div class="page">
-  <div class="header">
-    <div class="brand">Burke Vision Lab</div>
-    <div class="title">CSF Explorer</div>
-    <div class="subtitle">Explore how a contrast sensitivity curve may relate to everyday visual scenarios at different distances and lighting. For educational purposes only.</div>
+  <div class="csfe-header">
+    <div class="csfe-brand">Burke Vision Lab</div>
+    <div class="csfe-title">CSF Explorer</div>
+    <div class="csfe-subtitle">Explore how a contrast sensitivity curve may relate to everyday visual scenarios at different distances and lighting. For educational purposes only.</div>
   </div>
 
   <div class="patient-disclaimer-banner" id="patient-disclaimer-banner" style="display:none;font-size:.6rem;color:rgba(255,255,255,.35);background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:8px 16px;text-align:center;line-height:1.5;max-width:680px;margin:0 auto">For educational and informational purposes only. Not a medical examination or diagnosis. Actual visibility depends on conditions not captured by a screen-based demonstration.</div>
@@ -944,16 +944,16 @@ initControls();
 
 var _root = document.querySelector('.csf-explorer-root') || document;
 if (hasPatientData) {
-    _root.querySelector('.title').textContent = 'Explore Your CSF';
+    _root.querySelector('.csfe-title').textContent = 'Explore Your CSF';
     var db = document.getElementById('patient-disclaimer-banner'); if (db) db.style.display = 'block';
-    _root.querySelector('.subtitle').textContent =
+    _root.querySelector('.csfe-subtitle').textContent =
         'This is an estimated contrast sensitivity profile from the interactive demo. Explore how it may relate to everyday visual scenarios at different distances and lighting. For educational purposes only \u2014 not a clinical assessment.';
     document.getElementById('formula-text').textContent =
         'log\u2081\u2080(S) = ' + csfParams.g.toFixed(2) + ' \u2212 ' + csfParams.b.toFixed(2) + '\u00b7\u0394\u00b2 \u2212 ' + csfParams.d.toFixed(2) + '\u00b7\u0394\u2074';
     document.getElementById('formula-peak').textContent =
         'Peak: ' + csfParams.f.toFixed(1) + ' cpd';
 } else {
-    _root.querySelector('.subtitle').textContent =
+    _root.querySelector('.csfe-subtitle').textContent =
         'Explore how a contrast sensitivity curve may relate to everyday visual scenarios. The curve below represents an estimated typical observer. For educational purposes only.';
 }
 
