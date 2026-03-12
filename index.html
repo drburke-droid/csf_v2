@@ -197,6 +197,92 @@
             color: rgba(255,255,255,0.2);
             letter-spacing: 1px;
         }
+        /* ── On-screen response buttons (patient mode) ────── */
+        #response-bar {
+            display: none;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .resp-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 14px 22px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(0,0,0,0.35);
+            backdrop-filter: blur(12px);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            color: rgba(255,255,255,0.7);
+            font-family: inherit;
+        }
+        .resp-btn:hover {
+            border-color: rgba(0,255,204,0.3);
+            background: rgba(0,255,204,0.06);
+        }
+        .resp-btn:active {
+            transform: scale(0.93);
+            border-color: #00ffcc;
+            background: rgba(0,255,204,0.12);
+            color: #00ffcc;
+        }
+        .resp-arrow { font-size: 1.6rem; }
+        .resp-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.45rem;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.25);
+            text-transform: uppercase;
+        }
+        /* ── Tutorial on-screen buttons (patient mode) ───── */
+        #tut-response-bar {
+            display: none;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 8px;
+        }
+        .tut-resp-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            padding: 10px 18px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.02);
+            cursor: default;
+            font-size: 1.3rem;
+            font-family: inherit;
+            color: rgba(255,255,255,0.15);
+            opacity: 0.3;
+            pointer-events: none;
+            transition: all 0.25s ease;
+        }
+        .tut-resp-btn.tut-active {
+            opacity: 1;
+            pointer-events: auto;
+            cursor: pointer;
+            border-color: #ff453a;
+            background: rgba(255,69,58,0.1);
+            color: #ff453a;
+            box-shadow: 0 0 20px rgba(255,69,58,0.2);
+            animation: tutBtnPulse 1.2s ease-in-out infinite;
+        }
+        .tut-resp-btn.tut-active:active {
+            transform: scale(0.93);
+        }
+        @keyframes tutBtnPulse {
+            0%,100% { box-shadow: 0 0 14px rgba(255,69,58,0.15); }
+            50% { box-shadow: 0 0 28px rgba(255,69,58,0.4); }
+        }
+        .tut-resp-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.4rem;
+            letter-spacing: 0.5px;
+        }
         /* ── Notch flag (clinic mode) ────────────────────────── */
         #notch-flag {
             display: none;
@@ -263,6 +349,14 @@
             <div class="tut-arrow" id="tut-arrow"></div>
             <div class="tut-key-name" id="tut-key-name"></div>
         </div>
+        <!-- On-screen tutorial buttons (patient mode only) -->
+        <div id="tut-response-bar">
+            <button class="tut-resp-btn" data-key="up" onclick="window.handleInput('up')"><span>↑</span><span class="tut-resp-label">Vertical</span></button>
+            <button class="tut-resp-btn" data-key="right" onclick="window.handleInput('right')"><span>→</span><span class="tut-resp-label">Horizontal</span></button>
+            <button class="tut-resp-btn" data-key="upright" onclick="window.handleInput('upright')"><span>↗</span><span class="tut-resp-label">Diagonal R</span></button>
+            <button class="tut-resp-btn" data-key="upleft" onclick="window.handleInput('upleft')"><span>↖</span><span class="tut-resp-label">Diagonal L</span></button>
+            <button class="tut-resp-btn" data-key="none" onclick="window.handleInput('none')"><span>✕</span><span class="tut-resp-label">No Target</span></button>
+        </div>
         <div class="tut-dots" id="tut-dots"></div>
         <div class="tut-hint" id="tut-hint"></div>
     </div>
@@ -274,6 +368,14 @@
             <span class="hud-mode" id="mode-label">—</span>
             <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
             <span class="hud-progress" id="live-progress">0 / 50</span>
+        </div>
+        <!-- Patient Mode: On-screen response buttons -->
+        <div id="response-bar">
+            <button class="resp-btn" onclick="window.handleInput('up')"><span class="resp-arrow">↑</span><span class="resp-label">Vertical</span></button>
+            <button class="resp-btn" onclick="window.handleInput('right')"><span class="resp-arrow">→</span><span class="resp-label">Horizontal</span></button>
+            <button class="resp-btn" onclick="window.handleInput('upright')"><span class="resp-arrow">↗</span><span class="resp-label">Diagonal R</span></button>
+            <button class="resp-btn" onclick="window.handleInput('upleft')"><span class="resp-arrow">↖</span><span class="resp-label">Diagonal L</span></button>
+            <button class="resp-btn" onclick="window.handleInput('none')"><span class="resp-arrow">✕</span><span class="resp-label">No Target</span></button>
         </div>
     </div>
 

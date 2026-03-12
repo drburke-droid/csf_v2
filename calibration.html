@@ -426,12 +426,25 @@
     if (calMode === 'patient') {
         document.getElementById('patient-cal-notice').style.display = 'block';
         document.getElementById('dist-desc').textContent =
-            'Enter the approximate distance from your eyes to this screen.';
+            'How far are your eyes from this screen?';
+        // Default to cm for desk distances
+        distUnit.value = 'cm';
+        // Add desk distance hint
+        const distInputWrap = distInput.closest('div');
+        if (distInputWrap) {
+            const hint = document.createElement('p');
+            hint.style.cssText = 'font-size:0.7rem; color:var(--text-tertiary); max-width:320px; margin:8px auto 0; line-height:1.5;';
+            hint.textContent = 'Most people sit 50–80 cm (20–32 inches) from their monitor.';
+            distInputWrap.appendChild(hint);
+        }
         // Hide mirror mode (not relevant for home use)
         const mirrorRow = mirrorCheck.closest('.check-row');
         if (mirrorRow) mirrorRow.style.display = 'none';
         const mirrorHelp = mirrorRow ? mirrorRow.nextElementSibling : null;
         if (mirrorHelp && mirrorHelp.tagName === 'P') mirrorHelp.style.display = 'none';
+        // Hide mirror in review step
+        const sumMirrorRow = document.getElementById('sum-mirror');
+        if (sumMirrorRow && sumMirrorRow.parentElement) sumMirrorRow.parentElement.style.display = 'none';
     }
 
     // Existing calibration

@@ -215,16 +215,26 @@ function renderTutStep(idx) {
         `<div class="tut-dot${i === idx ? ' active' : ''}"></div>`
     ).join('');
 
-    document.getElementById('tut-hint').textContent =
-        idx < TUT.length - 1
-            ? 'Press the highlighted button on your controller'
-            : 'Last step — press to begin testing';
-
-    if (sync && sync.connected) {
-        sync.sendTutStep({
-            stepIdx: idx, key: s.key, arrow: s.arrow,
-            name: s.name, total: TUT.length
+    if (isPatientMode()) {
+        // Highlight on-screen tutorial button
+        document.querySelectorAll('.tut-resp-btn').forEach(b => {
+            b.classList.toggle('tut-active', b.dataset.key === s.key);
         });
+        document.getElementById('tut-hint').textContent =
+            idx < TUT.length - 1
+                ? 'Click the highlighted button below'
+                : 'Click to begin testing';
+    } else {
+        document.getElementById('tut-hint').textContent =
+            idx < TUT.length - 1
+                ? 'Press the highlighted button on your controller'
+                : 'Last step — press to begin testing';
+        if (sync && sync.connected) {
+            sync.sendTutStep({
+                stepIdx: idx, key: s.key, arrow: s.arrow,
+                name: s.name, total: TUT.length
+            });
+        }
     }
 }
 
@@ -335,7 +345,6 @@ function initPeerSync() {
                 <button class="sync-dismiss-btn" id="sync-fallback-btn">Use Keyboard</button>`;
             document.getElementById('sync-fallback-btn').onclick = () => {
                 so.style.display = 'none';
-                if (isPatientMode()) showWelcome();
             };
         }
         return;
@@ -363,9 +372,6 @@ function initPeerSync() {
             onConnect() {
                 const so = document.getElementById('sync-overlay');
                 if (so) so.style.display = 'none';
-
-                // Patient mode: show welcome/tutorial flow
-                if (isPatientMode()) showWelcome();
 
                 // Send current state to newly connected tablet
                 if (mode) {
@@ -400,7 +406,9 @@ function initPeerSync() {
     }
 }
 
-initPeerSync();
+if (!isPatientMode()) {
+    initPeerSync();
+}
 
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -566,13 +574,13 @@ function finishClinic(result, explorerURL) {
 
 initMode(currentModeId);
 
-// Override sync overlay dismiss button for patient mode welcome flow
 if (isPatientMode()) {
-    const syncDismissBtn = document.querySelector('#sync-overlay .sync-dismiss-btn');
-    if (syncDismissBtn) {
-        syncDismissBtn.onclick = () => {
-            document.getElementById('sync-overlay').style.display = 'none';
-            showWelcome();
-        };
-    }
+    // Patient mode: on-screen only, no tablet needed
+    const so = document.getElementById('sync-overlay');
+    if (so) so.style.display = 'none';
+    const rb = document.getElementById('response-bar');
+    if (rb) rb.style.display = 'flex';
+    const trb = document.getElementById('tut-response-bar');
+    if (trb) trb.style.display = 'flex';
+    showWelcome();
 }
