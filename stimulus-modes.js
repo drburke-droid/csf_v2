@@ -32,27 +32,37 @@ export function createMode(mode) {
     }
 }
 
-// ─── Gabor Gratings (4-AFC orientation) ─────────────────────────────────────
+// ─── Gabor Gratings (5-AFC: 4 orientations + "no target") ───────────────────
 
 function createGaborMode() {
-    const ANGLE_MAP = { 0:'up', 90:'right', 45:'upright', 135:'upleft' };
-    const labels = ['↑', '→', '↗', '↖'];
-    const keys   = ['up', 'right', 'upright', 'upleft'];
+    const labels = ['↑', '→', '↗', '↖', '✕'];
+    const keys   = ['up', 'right', 'upright', 'upleft', 'none'];
 
-    let currentAngle = 0;
+    let currentAngle = null;   // null = catch trial (no target)
+    const CATCH_RATE = 0.1;    // 10% of trials are catch trials
 
     return {
         id: 'gabor',
         name: 'Gabor Grating',
-        numAFC: 4,
+        numAFC: 5,
         psychometricSlope: 3.5,
-        labels,           // Display labels for response buttons
-        keys,             // Internal key identifiers
+        labels,
+        keys,
         responseType: 'orientation',
 
         generate() { /* No templates needed */ },
 
         render(canvas, stim, cal) {
+            // Occasional catch trial: show blank (mid-grey) instead of grating
+            if (Math.random() < CATCH_RATE) {
+                currentAngle = null;
+                const ctx = canvas.getContext('2d');
+                const mp = cal.midPoint;
+                ctx.fillStyle = `rgb(${mp},${mp},${mp})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                return null;
+            }
+
             currentAngle = ORIENTATIONS_4[Math.floor(Math.random() * 4)];
             drawGabor(canvas, {
                 cpd: stim.frequency,
@@ -63,6 +73,9 @@ function createGaborMode() {
         },
 
         checkAnswer(response) {
+            // Catch trial: "none" is correct
+            if (currentAngle === null) return response === 'none';
+            // Normal trial: check orientation
             const map = { up: 0, right: 90, upright: 45, upleft: 135 };
             return map[response] === currentAngle;
         }

@@ -23,7 +23,8 @@
             z-index: 100;
         }
         /* ── Patient results styling ─────────────────────────── */
-        .patient-only { display: none; }
+        /* Both hidden by default; finish() in app.js shows the correct set */
+        .clinic-only, .patient-only { display: none; }
         .patient-heading {
             font-size: 1.1rem;
             font-weight: 300;

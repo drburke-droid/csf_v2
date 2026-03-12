@@ -36,6 +36,13 @@ export function initKeyboard(onInput) {
             return;
         }
 
+        // X / 0 → "no target" (Gabor catch trials)
+        if (key === 'x' || key === '0') {
+            e.preventDefault();
+            onInput('none');
+            return;
+        }
+
         // Space → generic start/advance
         if (key === ' ') {
             e.preventDefault();

@@ -25,8 +25,10 @@ import { isPatientMode, isClinicMode, buildExplorerURL, withMode } from './confi
 const MAX_TRIALS  = 50;
 const DEBOUNCE_MS = 250;
 
-// Default mode (can be changed from tablet before test starts)
-let currentModeId = localStorage.getItem('qcsf_mode') || 'sloan';
+// Default mode: gabor for patient mode, sloan for clinic
+let currentModeId = isPatientMode()
+    ? 'gabor'
+    : (localStorage.getItem('qcsf_mode') || 'sloan');
 
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -89,6 +91,9 @@ let sync         = null;
 // ═════════════════════════════════════════════════════════════════════════════
 
 function initMode(modeId) {
+    // Patient mode: only gabor and tumblingE allowed
+    if (isPatientMode() && modeId === 'sloan') modeId = 'gabor';
+
     currentModeId = modeId;
     localStorage.setItem('qcsf_mode', modeId);
 
@@ -371,7 +376,7 @@ function finishPatient(result, explorerURL) {
     const clinicEls = overlay.querySelectorAll('.clinic-only');
     const patientEls = overlay.querySelectorAll('.patient-only');
     clinicEls.forEach(el => el.style.display = 'none');
-    patientEls.forEach(el => el.style.display = '');
+    patientEls.forEach(el => el.style.display = 'block');
 
     // Draw the CSF plot (BMA curve — can show dips and non-standard shapes)
     try {
@@ -398,7 +403,7 @@ function finishClinic(result, explorerURL) {
     // Show clinic elements, hide patient elements
     const clinicEls = overlay.querySelectorAll('.clinic-only');
     const patientEls = overlay.querySelectorAll('.patient-only');
-    clinicEls.forEach(el => el.style.display = '');
+    clinicEls.forEach(el => el.style.display = 'block');
     patientEls.forEach(el => el.style.display = 'none');
 
     // Update scoring display

@@ -110,7 +110,7 @@ body{background:var(--c);color:var(--t1);font-family:var(--f);-webkit-font-smoot
 <div class="dpad hid" id="pad-d">
 <button class="db" data-p="t" onclick="send('up')">↑</button>
 <button class="db" data-p="l" onclick="send('left')">←</button>
-<button class="db" data-p="c">+</button>
+<button class="db" data-p="c" id="btn-none" style="pointer-events:none;opacity:.08;font-size:.5rem;color:var(--t3)">+</button>
 <button class="db" data-p="r" onclick="send('right')">→</button>
 <button class="db" data-p="b" onclick="send('down')">↓</button>
 </div>
@@ -154,6 +154,17 @@ const urlParams=new URLSearchParams(location.search);
 const laneID=urlParams.get('id');
 const appMode=urlParams.get('mode')==='patient'?'patient':'clinic';
 let conn=null,isConn=false,cto=null,curMode='sloan',stream=null;
+
+// Patient-mode setup: hide Sloan tab, default to gabor
+if(appMode==='patient'){
+    const sloanTab=document.querySelector('.tab[data-m="sloan"]');
+    if(sloanTab) sloanTab.style.display='none';
+    // Set gabor as active tab
+    document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.m==='gabor'));
+    document.getElementById('sm').textContent='Gabor';
+    curMode='gabor';
+    switchPad('gabor');
+}
 
 if(!laneID){showErr('No lane ID');document.getElementById('rbtn').textContent='Back';document.getElementById('rbtn').onclick=()=>history.back()}
 else initConn();
@@ -205,21 +216,31 @@ function switchPad(m){
     const isDir=m==='gabor'||m==='tumblingE';
     document.getElementById('pad-s').classList.toggle('hid',isDir);
     document.getElementById('pad-d').classList.toggle('hid',!isDir);
-    // For gabor, show diagonals (future); for tumbling E, show arrows
     const dbtns=document.querySelectorAll('.db[data-p]');
+    const noneBtn=document.getElementById('btn-none');
     dbtns.forEach(b=>{
         if(m==='gabor'){
-            // Gabor uses up/right/upright/upleft
-            if(b.dataset.p==='t'){b.textContent='↑';b.onclick=()=>send('up')}
-            if(b.dataset.p==='r'){b.textContent='↗';b.onclick=()=>send('upright')}
-            if(b.dataset.p==='b'){b.textContent='↗';b.style.transform='rotate(90deg)';b.onclick=()=>send('upleft')}
-            if(b.dataset.p==='l'){b.textContent='→';b.onclick=()=>send('right')}
+            // Gabor: 4 orientations + center "No Target" button
+            if(b.dataset.p==='t'){b.textContent='↑';b.onclick=()=>send('up');b.style.transform=''}
+            if(b.dataset.p==='r'){b.textContent='↗';b.onclick=()=>send('upright');b.style.transform=''}
+            if(b.dataset.p==='b'){b.textContent='↖';b.onclick=()=>send('upleft');b.style.transform=''}
+            if(b.dataset.p==='l'){b.textContent='→';b.onclick=()=>send('right');b.style.transform=''}
+            if(b.dataset.p==='c'){
+                b.textContent='✕';b.onclick=()=>send('none');
+                b.style.pointerEvents='auto';b.style.opacity='1';
+                b.style.fontSize='1.4rem';b.style.color='var(--t2)';
+            }
         } else {
+            // Tumbling E: 4 cardinal directions, center disabled
             if(b.dataset.p==='t'){b.textContent='↑';b.onclick=()=>send('up')}
             if(b.dataset.p==='r'){b.textContent='→';b.onclick=()=>send('right')}
-            if(b.dataset.p==='b'){b.textContent='↓';b.onclick=()=>send('down')}
+            if(b.dataset.p==='b'){b.textContent='↓';b.onclick=()=>send('down');b.style.transform=''}
             if(b.dataset.p==='l'){b.textContent='←';b.onclick=()=>send('left')}
-            if(b.dataset.p==='b')b.style.transform='';
+            if(b.dataset.p==='c'){
+                b.textContent='+';b.onclick=null;
+                b.style.pointerEvents='none';b.style.opacity='.08';
+                b.style.fontSize='.5rem';b.style.color='var(--t3)';
+            }
         }
     });
 }
