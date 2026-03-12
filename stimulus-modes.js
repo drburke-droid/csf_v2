@@ -38,8 +38,7 @@ function createGaborMode() {
     const labels = ['↑', '→', '↗', '↖', '✕'];
     const keys   = ['up', 'right', 'upright', 'upleft', 'none'];
 
-    let currentAngle = null;   // null = catch trial (no target)
-    const CATCH_RATE = 0.1;    // 10% of trials are catch trials
+    let currentAngle = 0;
 
     return {
         id: 'gabor',
@@ -53,16 +52,6 @@ function createGaborMode() {
         generate() { /* No templates needed */ },
 
         render(canvas, stim, cal) {
-            // Occasional catch trial: show blank (mid-grey) instead of grating
-            if (Math.random() < CATCH_RATE) {
-                currentAngle = null;
-                const ctx = canvas.getContext('2d');
-                const mp = cal.midPoint;
-                ctx.fillStyle = `rgb(${mp},${mp},${mp})`;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                return null;
-            }
-
             currentAngle = ORIENTATIONS_4[Math.floor(Math.random() * 4)];
             drawGabor(canvas, {
                 cpd: stim.frequency,
@@ -73,9 +62,8 @@ function createGaborMode() {
         },
 
         checkAnswer(response) {
-            // Catch trial: "none" is correct
-            if (currentAngle === null) return response === 'none';
-            // Normal trial: check orientation
+            // "none" = patient can't see the target → incorrect (strong threshold signal)
+            if (response === 'none') return false;
             const map = { up: 0, right: 90, upright: 45, upleft: 135 };
             return map[response] === currentAngle;
         }
