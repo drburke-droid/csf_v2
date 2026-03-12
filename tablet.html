@@ -54,11 +54,15 @@ body{background:var(--c);color:var(--t1);font-family:var(--f);-webkit-font-smoot
 @keyframes pls{0%,100%{opacity:1}50%{opacity:.3}}
 .rbtn{display:none;margin-top:10px;background:0;color:var(--t3);border:1px solid var(--b);padding:7px 18px;border-radius:100px;cursor:pointer;font-family:var(--f);font-size:.7rem}
 
-.rv{display:none;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:5px}
+.rv{display:none;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:5px;padding:0 20px}
 .rv .ey{font-family:var(--m);font-size:.45rem;letter-spacing:4px;text-transform:uppercase;color:var(--t3)}
 .rv .sc{font-family:var(--m);font-size:3.8rem;font-weight:700;color:var(--a);line-height:1;text-shadow:0 0 50px var(--ag)}
 .rv .rk{font-family:var(--f);font-size:.75rem;font-weight:200;letter-spacing:6px;text-transform:uppercase;color:var(--t2)}
 .rv .dt{font-family:var(--m);font-size:.45rem;color:var(--t3)}
+.rv .pt-heading{font-size:.85rem;font-weight:300;color:var(--t1);text-align:center;margin-bottom:4px}
+.rv .pt-sub{font-size:.65rem;color:var(--t2);text-align:center;line-height:1.5;max-width:300px}
+.rv .pt-cta{display:inline-block;background:var(--a);color:#0a0a0c;padding:12px 28px;border-radius:20px;font-family:var(--f);font-size:.8rem;font-weight:600;text-decoration:none;margin-top:12px}
+.rv .pt-disc{font-size:.45rem;color:var(--t3);text-align:center;line-height:1.5;max-width:280px;margin-top:12px}
 
 .sp{display:none;position:fixed;inset:0;background:var(--c);z-index:200;flex-direction:column;padding:20px;overflow-y:auto;animation:su .3s var(--ez)}
 .sp.open{display:flex}
@@ -114,7 +118,17 @@ body{background:var(--c);color:var(--t1);font-family:var(--f);-webkit-font-smoot
 
 <div class="sbar"><div id="st"><span class="sd" id="sd"></span>Connecting</div><button class="rbtn" id="rbtn" onclick="location.reload()">Retry</button></div>
 
-<div class="rv" id="rv"><div class="ey">AULCSF</div><div class="sc" id="rsc">—</div><div class="rk" id="rrk"></div><div class="dt" id="rdt"></div></div>
+<div class="rv" id="rv">
+<!-- Clinic mode results -->
+<div id="rv-clinic"><div class="ey">AULCSF</div><div class="sc" id="rsc">—</div><div class="rk" id="rrk"></div><div class="dt" id="rdt"></div></div>
+<!-- Patient mode results -->
+<div id="rv-patient" style="display:none;text-align:center;">
+<div class="pt-heading">Test Complete</div>
+<div class="pt-sub">Your contrast sensitivity profile is ready. Explore what it means for everyday vision.</div>
+<a id="rv-explorer" class="pt-cta" href="#" target="_blank">See What Your Vision Means →</a>
+<div class="pt-disc">For educational purposes only. Not a medical examination or diagnosis. Consult a licensed eye care professional for clinical assessment.</div>
+</div>
+</div>
 
 <div class="sp" id="sp">
 <div class="sh"><span class="st">Settings</span><button class="sc2" onclick="toggleSettings()">Done</button></div>
@@ -136,7 +150,9 @@ body{background:var(--c);color:var(--t1);font-family:var(--f);-webkit-font-smoot
 
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script>
-const laneID=new URLSearchParams(location.search).get('id');
+const urlParams=new URLSearchParams(location.search);
+const laneID=urlParams.get('id');
+const appMode=urlParams.get('mode')==='patient'?'patient':'clinic';
 let conn=null,isConn=false,cto=null,curMode='sloan',stream=null;
 
 if(!laneID){showErr('No lane ID');document.getElementById('rbtn').textContent='Back';document.getElementById('rbtn').onclick=()=>history.back()}
@@ -159,7 +175,7 @@ function initConn(){
 function onMsg(d){
     if(d.type==='state')switchPad(d.mode);
     if(d.type==='progress')updateRing(d.trial,d.maxTrials);
-    if(d.type==='results')showResults(d.score,d.rank,d.detail);
+    if(d.type==='results')showResults(d.score,d.rank,d.detail,d.explorerURL);
 }
 
 function send(v){
@@ -215,15 +231,28 @@ function updateRing(t,mx){
     document.getElementById('rnum').textContent=t;
 }
 
-function showResults(score,rank,detail){
+function showResults(score,rank,detail,explorerURL){
     document.getElementById('resp').style.display='none';
     document.getElementById('tabs').style.display='none';
     document.querySelector('.prog').style.display='none';
     document.querySelector('.sbar').style.display='none';
     const rv=document.getElementById('rv');rv.style.display='flex';
-    document.getElementById('rsc').textContent=score||'—';
-    document.getElementById('rrk').textContent=rank||'';
-    document.getElementById('rdt').textContent=detail||'';
+
+    if(appMode==='patient'){
+        // Patient mode: no scores, show Explorer CTA
+        document.getElementById('rv-clinic').style.display='none';
+        document.getElementById('rv-patient').style.display='';
+        if(explorerURL){
+            document.getElementById('rv-explorer').href=explorerURL;
+        }
+    } else {
+        // Clinic mode: full scores
+        document.getElementById('rv-clinic').style.display='';
+        document.getElementById('rv-patient').style.display='none';
+        document.getElementById('rsc').textContent=score||'—';
+        document.getElementById('rrk').textContent=rank||'';
+        document.getElementById('rdt').textContent=detail||'';
+    }
 }
 
 function setSt(cls,txt){

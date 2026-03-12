@@ -3,14 +3,18 @@
  * =================
  * Draws the estimated contrast sensitivity function curve
  * with trial markers on a canvas element.
+ *
+ * Uses Bayesian Model Averaging (BMA) for the primary curve,
+ * which can represent non-standard CSF shapes including
+ * mid-frequency dips and frequency-band deficits.
  */
 
 /**
  * Draw the CSF curve and trial history on a canvas.
  *
  * @param {HTMLCanvasElement} canvas – target canvas
- * @param {object} engine           – QCSFEngine instance (for getCSFCurve, history, stimGrid)
- * @param {object} params           – CSF parameter estimate { peakGain, peakFreq, bandwidth, truncation }
+ * @param {object} engine           – QCSFEngine instance
+ * @param {object} params           – CSF parameter estimate (for parametric reference)
  */
 export function drawCSFPlot(canvas, engine, params) {
     const ctx = canvas.getContext('2d');
@@ -45,22 +49,64 @@ export function drawCSFPlot(canvas, engine, params) {
         ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + plotW, y); ctx.stroke();
     }
 
-    // ── CSF Curve ────────────────────────────────────────────────────────
-    const curve = engine.getCSFCurve(params);
+    // ── BMA Curve (primary — can show dips and non-standard shapes) ─────
+    const bmaCurve = engine.getBMACurve(150);
 
+    // Gradient fill under curve
+    const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + plotH);
+    grad.addColorStop(0, 'rgba(0,255,204,0.12)');
+    grad.addColorStop(1, 'rgba(0,255,204,0.0)');
+
+    ctx.beginPath();
+    let firstX = null, firstY = null, lastX = null;
+    for (const pt of bmaCurve) {
+        if (pt.logS < logSMin) continue;
+        const x = toX(Math.log10(pt.freq));
+        const y = toY(Math.min(pt.logS, logSMax));
+        if (firstX === null) { ctx.moveTo(x, y); firstX = x; firstY = y; }
+        else ctx.lineTo(x, y);
+        lastX = x;
+    }
+    if (firstX !== null && lastX !== null) {
+        ctx.lineTo(lastX, toY(logSMin));
+        ctx.lineTo(firstX, toY(logSMin));
+        ctx.closePath();
+        ctx.fillStyle = grad;
+        ctx.fill();
+    }
+
+    // BMA curve stroke
     ctx.strokeStyle = '#00ffcc';
     ctx.lineWidth   = 3;
     ctx.beginPath();
     let started = false;
-
-    for (const pt of curve) {
+    for (const pt of bmaCurve) {
         if (pt.logS < logSMin) continue;
         const x = toX(Math.log10(pt.freq));
-        const y = toY(pt.logS);
+        const y = toY(Math.min(pt.logS, logSMax));
         if (!started) { ctx.moveTo(x, y); started = true; }
         else ctx.lineTo(x, y);
     }
     ctx.stroke();
+
+    // ── Parametric reference curve (dimmed, for comparison) ──────────────
+    if (params) {
+        const paramCurve = engine.getCSFCurve(params);
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth   = 1.5;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        started = false;
+        for (const pt of paramCurve) {
+            if (pt.logS < logSMin) continue;
+            const x = toX(Math.log10(pt.freq));
+            const y = toY(pt.logS);
+            if (!started) { ctx.moveTo(x, y); started = true; }
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
 
     // ── Trial Markers ────────────────────────────────────────────────────
     for (const trial of engine.history) {

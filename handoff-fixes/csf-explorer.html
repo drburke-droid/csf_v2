@@ -1,0 +1,958 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CSF Explorer — Burke Vision Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,200;9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@200;300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0c;--chrome:#0a0a0c;--s1:#0c0c10;--s2:#111118;--a:#00ffcc;--as:rgba(0,255,204,.06);--ag:rgba(0,255,204,.25);--a2:rgba(0,255,204,.12);--b:rgba(255,255,255,.06);--b2:rgba(255,255,255,.10);--t1:rgba(255,255,255,.92);--t2:rgba(255,255,255,.45);--t3:rgba(255,255,255,.18);--e:#ff453a;--f:'DM Sans',-apple-system,system-ui,sans-serif;--m:'JetBrains Mono','SF Mono',monospace;--ez:cubic-bezier(.22,.68,0,1.04);--ez-out:cubic-bezier(0,.55,.45,1);--settle:550ms}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:100%}
+html,body{min-height:100vh}
+body{background:linear-gradient(170deg,#0c0c10 0%,#080810 50%,#0a0a12 100%);font-family:var(--f);color:var(--t1);-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;align-items:center;padding:clamp(24px,5vh,60px) 20px 40px}
+@keyframes settleUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* ─── Layout ─── */
+.page{max-width:1200px;width:100%;display:flex;flex-direction:column;align-items:center;gap:clamp(16px,3vh,28px)}
+.header{text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;opacity:0;animation:settleUp var(--settle) var(--ez) .05s forwards}
+.brand{font-family:var(--m);font-size:.7rem;letter-spacing:4px;text-transform:uppercase;color:var(--t3)}
+.title{font-size:clamp(1.6rem,4vw,2.6rem);font-weight:200;line-height:1.15;letter-spacing:-.02em}
+.subtitle{font-size:clamp(.7rem,1.2vw,.88rem);color:var(--t2);max-width:520px;line-height:1.6;font-weight:300}
+
+/* ─── Formula bar (patient mode) ─── */
+.formula-bar{display:none;align-items:center;justify-content:center;gap:24px;font-family:var(--m);font-size:.78rem;color:var(--t2);padding:10px 20px;border-radius:10px;border:1px solid var(--b2);background:var(--s1);opacity:0;animation:settleUp var(--settle) var(--ez) .15s forwards}
+body.mode-patient .formula-bar{display:flex}
+.formula-text{color:var(--a)}
+.formula-peak{color:var(--t2)}
+
+/* ─── Demo banner ─── */
+.demo-banner{display:none;flex-direction:column;align-items:center;gap:8px;padding:16px 24px;border-radius:12px;border:1.5px solid rgba(0,255,204,.15);background:rgba(0,255,204,.04);text-align:center;opacity:0;animation:settleUp var(--settle) var(--ez) .15s forwards}
+body.mode-demo .demo-banner{display:flex}
+.demo-banner-text{font-size:.82rem;color:var(--t2);line-height:1.5;font-weight:300}
+.demo-banner-link{font-size:.82rem;color:var(--a);text-decoration:none;font-weight:500;transition:text-decoration .2s}
+.demo-banner-link:hover{text-decoration:underline}
+
+/* ─── Canvas ─── */
+.canvas-wrap{width:100%;opacity:0;animation:settleUp var(--settle) var(--ez) .25s forwards}
+#csf-canvas{width:100%;height:auto;border-radius:8px}
+
+/* ─── Controls ─── */
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:14px;width:100%;opacity:0;animation:settleUp var(--settle) var(--ez) .35s forwards}
+.obj-select{padding:8px 14px;border-radius:10px;border:2px solid var(--b2);background:var(--chrome);color:var(--t1);font-family:var(--f);font-size:.82rem;cursor:pointer;outline:0;min-width:200px;transition:border-color .3s}
+.obj-select:focus{border-color:var(--a)}
+.obj-select option{background:#111118;color:var(--t1)}
+.dist-group{display:flex;align-items:center;gap:10px;flex:1;min-width:200px}
+.dist-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:var(--b2);outline:0;cursor:pointer}
+.dist-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--a);box-shadow:0 0 10px rgba(0,255,204,.3);cursor:pointer}
+.dist-slider::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--a);border:0;box-shadow:0 0 10px rgba(0,255,204,.3);cursor:pointer}
+.dist-val{font-family:var(--m);font-size:.78rem;color:var(--t2);white-space:nowrap;min-width:70px;text-align:right}
+.lighting-pills{display:flex;gap:6px}
+.light-pill{padding:7px 14px;border-radius:8px;border:1.5px solid var(--b2);background:transparent;color:var(--t2);font-family:var(--f);font-size:.75rem;cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent;white-space:nowrap}
+.light-pill:hover{border-color:rgba(255,255,255,.2);color:var(--t1)}
+.light-pill.active{border-color:var(--a);color:var(--a);background:var(--as)}
+
+/* ─── Verdict card ─── */
+.verdict-card{width:100%;border-radius:16px;border:1.5px solid var(--b2);background:rgba(12,12,16,.8);padding:clamp(16px,3vw,28px);opacity:0;animation:settleUp var(--settle) var(--ez) .4s forwards}
+.verdict-status{font-size:clamp(1.1rem,2.5vw,1.6rem);font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+.verdict-status.resolved{color:#00ffcc}
+.verdict-status.detected{color:#F5A623}
+.verdict-status.invisible{color:#ff453a}
+.verdict-desc{font-size:clamp(.72rem,1.1vw,.88rem);color:var(--t2);line-height:1.6;margin-bottom:16px;font-weight:300}
+.feat-rows{display:flex;flex-direction:column;gap:8px}
+.feat-row{display:flex;align-items:center;gap:10px;font-size:.8rem}
+.feat-icon{font-size:.9rem;width:20px;text-align:center}
+.feat-icon.clear{color:#00ffcc}
+.feat-icon.likely{color:#8fdc6a}
+.feat-icon.marginal{color:#F5A623}
+.feat-icon.unlikely{color:#e87040}
+.feat-icon.invisible{color:#ff453a}
+.feat-label{font-family:var(--m);font-size:.68rem;padding:2px 8px;border-radius:4px;min-width:64px;text-align:center}
+.feat-label.clear{color:#00ffcc;background:rgba(0,255,204,.10)}
+.feat-label.likely{color:#8fdc6a;background:rgba(143,220,106,.10)}
+.feat-label.marginal{color:#F5A623;background:rgba(245,166,35,.10)}
+.feat-label.unlikely{color:#e87040;background:rgba(232,112,64,.10)}
+.feat-label.invisible{color:#ff453a;background:rgba(255,69,58,.10)}
+.feat-name{color:var(--t2);min-width:100px}
+.feat-freq{font-family:var(--m);font-size:.7rem;color:var(--t3)}
+.feat-margin{font-family:var(--m);font-size:.68rem;padding:2px 8px;border-radius:4px;margin-left:auto}
+.feat-margin.pos{color:#00ffcc;background:rgba(0,255,204,.08)}
+.feat-margin.neg{color:#ff453a;background:rgba(255,69,58,.08)}
+
+/* ─── Explain card ─── */
+.explain-card{width:100%;border-radius:16px;border:1.5px solid var(--b2);background:rgba(12,12,16,.8);padding:clamp(16px,3vw,28px);opacity:0;animation:settleUp var(--settle) var(--ez) .45s forwards}
+.explain-heading{font-size:.82rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:10px}
+.explain-body{font-size:.82rem;color:var(--t2);line-height:1.7;font-weight:300}
+.explain-body p{margin-bottom:10px}
+.explain-body p:last-child{margin-bottom:0}
+
+/* ─── Reference section ─── */
+.ref-section{width:100%;border-top:1px solid var(--b2);padding-top:clamp(16px,3vw,24px);opacity:0;animation:settleUp var(--settle) var(--ez) .5s forwards}
+.ref-heading{font-size:.75rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:10px}
+.ref-body{font-size:.75rem;color:var(--t2);line-height:1.7;font-weight:300}
+.ref-body p{margin-bottom:8px}
+.ref-body p:last-child{margin-bottom:0}
+.ref-body strong{color:var(--t2);font-weight:500}
+
+/* ─── Embed mode ─── */
+body.embed{padding:10px 10px 20px;min-height:0;background:#0a0a0c}
+body.embed .page{max-width:100%;gap:clamp(10px,2vh,18px)}
+body.embed.mode-demo .header{display:none}
+body.embed .header{animation:none;opacity:1;gap:4px}
+body.embed .title{font-size:clamp(1.1rem,3vw,1.6rem)}
+body.embed .subtitle{font-size:clamp(.6rem,1vw,.75rem);max-width:480px}
+body.embed .formula-bar{padding:6px 14px;font-size:.72rem}
+body.embed .demo-banner{padding:10px 16px}
+body.embed .demo-banner-text{font-size:.75rem}
+body.embed .demo-banner-link{font-size:.75rem}
+body.embed .formula-bar,body.embed .demo-banner,body.embed .canvas-wrap,body.embed .controls,body.embed .verdict-card,body.embed .explain-card,body.embed .ref-section{animation:none;opacity:1}
+body.embed .verdict-card,body.embed .explain-card{border-radius:12px;padding:clamp(12px,2.5vw,20px)}
+body.embed .ref-section{padding-top:clamp(10px,2vw,16px)}
+
+/* ─── Responsive ─── */
+@media(max-width:640px){
+  .controls{flex-direction:column;align-items:stretch}
+  .obj-select{min-width:0;width:100%}
+  .dist-group{min-width:0}
+  .lighting-pills{justify-content:center}
+  body.embed{padding:6px 6px 14px}
+  body.embed .page{gap:10px}
+  body.embed .controls{gap:10px}
+  body.embed .obj-select{font-size:.78rem;padding:7px 12px}
+  body.embed .dist-slider::-webkit-slider-thumb{width:22px;height:22px}
+  body.embed .dist-slider::-moz-range-thumb{width:22px;height:22px}
+  body.embed .light-pill{padding:8px 12px;font-size:.72rem}
+  body.embed .verdict-status{font-size:clamp(.95rem,4vw,1.3rem)}
+  body.embed .verdict-desc{font-size:clamp(.68rem,2.5vw,.82rem)}
+  body.embed .feat-row{font-size:.72rem;gap:6px;flex-wrap:wrap}
+  body.embed .feat-name{min-width:80px;font-size:.68rem}
+  body.embed .feat-freq{font-size:.62rem}
+  body.embed .feat-margin{font-size:.6rem}
+  body.embed .explain-heading{font-size:.72rem}
+  body.embed .explain-body{font-size:.72rem;line-height:1.6}
+  body.embed .ref-heading{font-size:.65rem}
+  body.embed .ref-body{font-size:.65rem}
+  .formula-bar{flex-direction:column;gap:8px;padding:8px 14px;font-size:.72rem}
+  .demo-banner{padding:12px 16px}
+  .demo-banner-text{font-size:.75rem}
+  .demo-banner-link{font-size:.75rem}
+}
+</style>
+</head><body>
+<div class="page">
+  <div class="header">
+    <div class="brand">Burke Vision Lab</div>
+    <div class="title">CSF Explorer</div>
+    <div class="subtitle">See how your contrast sensitivity maps onto real-world objects at different distances and lighting conditions.</div>
+  </div>
+
+  <div class="patient-disclaimer-banner" id="patient-disclaimer-banner" style="display:none;font-size:.6rem;color:rgba(255,255,255,.35);background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:8px 16px;text-align:center;line-height:1.5;max-width:680px;margin:0 auto">For educational and informational purposes only. Not a medical examination or diagnosis. Actual visibility depends on conditions not captured by a screen-based demonstration.</div>
+  <div class="formula-bar" id="formula-bar">
+    <span class="formula-text" id="formula-text"></span>
+    <span class="formula-peak" id="formula-peak"></span>
+  </div>
+
+  <div class="demo-banner" id="demo-banner">
+    <div class="demo-banner-text">You're viewing a typical observer with 20/20 vision. Test your own vision to create your personal CSF curve.</div>
+    <a class="demo-banner-link" href="https://drburke-droid.github.io/csf/" target="_blank" rel="noopener">Take the Contrast Sensitivity Test →</a>
+  </div>
+
+  <div class="canvas-wrap">
+    <canvas id="csf-canvas"></canvas>
+  </div>
+
+  <div class="controls">
+    <select class="obj-select" id="obj-select" onchange="onControlChange()"></select>
+    <div class="dist-group">
+      <input class="dist-slider" id="dist-slider" type="range" oninput="onControlChange()">
+      <div class="dist-val" id="dist-val">150 yd</div>
+    </div>
+    <div class="lighting-pills" id="lighting-pills"></div>
+  </div>
+
+  <div class="verdict-card" id="verdict-card">
+    <div class="verdict-status" id="verdict-status">--</div>
+    <div class="verdict-desc" id="verdict-desc"></div>
+    <div class="feat-rows" id="feat-rows"></div>
+  </div>
+
+  <div class="explain-card">
+    <div class="explain-heading">Reading the chart</div>
+    <div class="explain-body" id="explain-body"></div>
+  </div>
+
+  <div class="ref-section">
+    <div class="ref-heading">How this data was derived</div>
+    <div class="ref-body">
+      <p><strong>CSF model</strong> — Log-parabola contrast sensitivity function from Lesmes et al. (2010), "Bayesian adaptive estimation of the contrast sensitivity function: The quick CSF method." The four parameters (gain, peak frequency, bandwidth, truncation) are fitted from the patient's adaptive test results.</p>
+      <p><strong>Object sizes</strong> — Golf ball: USGA Rules of Golf (diameter 42.67 mm, dimple ~3.5 mm). Hi-vis vest: ANSI/ISEA 107-2020 (5 cm retroreflective tape). Highway signs: FHWA MUTCD Series E(Modified) (16-inch uppercase, 20% stroke width). Pedestrian: anthropometric averages (shoulder width ~45 cm, head ~25 cm). Deer: whitetail shoulder height ~1 m; D'Angelo et al. (2023), "Factors affecting driver detection of deer at night."</p>
+      <p><strong>Contrast values</strong> — Michelson contrast computed from published surface reflectance data. Daytime values derived from material albedo against typical backgrounds. Night retroreflective values based on ASTM E810 standard practice and FHWA-HRT-07-040 retroreflectivity report; modern Type III+ sheeting maintains high contrast under headlamp illumination.</p>
+      <p><strong>Fourier demand model</strong> — Broadband features (edges, bodies) modeled as step-edge stimuli whose sensitivity demand rises with spatial frequency: S<sub>req</sub>(f) = sqrt(1 + (pi f theta)^2) / C. Texture features (dimple pattern) use a Gaussian bandpass model centered at the characteristic texture frequency. Theoretical framework follows Campbell &amp; Robson (1968), "Application of Fourier analysis to the visibility of gratings," and Watson &amp; Ahumada (2005), "A standard model for foveal detection of spatial contrast."</p>
+    </div>
+  </div>
+
+  <div class="disclaimer" style="font-size:.65rem;color:var(--t3);line-height:1.6;text-align:center;max-width:680px;margin:0 auto;opacity:0;animation:settleUp var(--settle) var(--ez) .55s forwards">This tool is for educational and informational purposes only and is not a substitute for a professional eye examination. Results may vary based on screen calibration, ambient lighting, and testing conditions. Do not use these results to make medical decisions. If you have concerns about your vision, please consult a licensed eye care professional.</div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════
+   CSF Explorer — Burke Vision Lab
+   Self-contained interactive real-world vision analyzer
+   ════════════════════════════════════════════════════════ */
+
+// ── CSF Math (replicated from qcsf-engine.js) ──
+function logParabolaCSF(freq, g, f, b, d) {
+    const safeFreq = Math.max(0.05, freq);
+    const logF = Math.log10(safeFreq);
+    const logPeak = Math.log10(Math.max(0.2, f));
+    const delta = logF - logPeak;
+    const baseDrop = Math.max(0.2, b) * delta * delta;
+    const highFreqDrop = (delta > 0) ? Math.max(0.2, d) * Math.pow(delta, 4) : 0;
+    return g - baseDrop - highFreqDrop;
+}
+
+function getCSFCurve(params, n) {
+    n = n || 300;
+    const curve = [];
+    for (let i = 0; i < n; i++) {
+        const freq = Math.pow(10, -0.3 + i * 2.05 / (n - 1));
+        curve.push({ freq, logS: logParabolaCSF(freq, params.g, params.f, params.b, params.d) });
+    }
+    return curve;
+}
+
+// ── State ──
+let csfParams = { g: 2.10, f: 4.5, b: 1.10, d: 0.80 };
+let currentObj = 0;
+let currentLighting = 'bright';
+let rafId = null;
+
+// ── Object definitions ──
+// Each feature: { label, size (m), contrast: {bright,cloudy,overcast,night}, type }
+const OBJECTS = [
+    {
+        name: 'Golf Ball (fairway)',
+        distRange: [10, 300], distDefault: 137, distStep: 5, distUnit: 'yd', distScale: 0.9144,
+        features: [
+            { label: 'Ball body',    size: 0.04267, contrast: { bright: 0.70, cloudy: 0.50, overcast: 0.25, night: 0.03 }, type: 'broadband' },
+            // 18mm ≈ diameter/2.4 — minimum for perceiving spatial extent (not a point)
+            { label: 'Ball edge',    size: 0.018,   contrast: { bright: 0.70, cloudy: 0.50, overcast: 0.25, night: 0.03 }, type: 'broadband' },
+            { label: 'Dimple texture', size: 0.0035, contrast: { bright: 0.15, cloudy: 0.08, overcast: 0.04, night: 0.005 }, type: 'texture' },
+        ],
+        descriptions: {
+            resolved: 'You can make out the dimple pattern on the ball at this distance.',
+            detected: 'You can see the ball but can\'t resolve its shape or surface details.',
+            invisible: 'Under these conditions, the ball would likely be very difficult to see.',
+        },
+    },
+    {
+        name: 'Golf Ball (sky)',
+        distRange: [10, 300], distDefault: 137, distStep: 5, distUnit: 'yd', distScale: 0.9144,
+        features: [
+            { label: 'Ball body',    size: 0.04267, contrast: { bright: 0.40, cloudy: 0.25, overcast: 0.10, night: 0.01 }, type: 'broadband' },
+            { label: 'Ball edge',    size: 0.018,   contrast: { bright: 0.40, cloudy: 0.25, overcast: 0.10, night: 0.01 }, type: 'broadband' },
+            { label: 'Dimple texture', size: 0.0035, contrast: { bright: 0.04, cloudy: 0.02, overcast: 0.01, night: 0.002 }, type: 'texture' },
+        ],
+        descriptions: {
+            resolved: 'You can make out the dimple pattern against the sky.',
+            detected: 'You can track the ball in flight but can\'t see surface detail.',
+            invisible: 'Under these conditions, the ball would likely be lost against the sky.',
+        },
+    },
+    {
+        name: 'Pedestrian (dark clothing)',
+        distRange: [20, 500], distDefault: 100, distStep: 10, distUnit: 'm', distScale: 1,
+        features: [
+            // Dark clothing (~5-7% reflectance) vs asphalt (~10%) = very low contrast
+            // Olson & Sivak 1983: detection ~46m low-beam; Sullivan & Flannagan 2002
+            { label: 'Body',  size: 0.45,  contrast: { bright: 0.35, cloudy: 0.22, overcast: 0.10, night: 0.03 }, type: 'broadband' },
+            { label: 'Limbs', size: 0.15,  contrast: { bright: 0.25, cloudy: 0.15, overcast: 0.06, night: 0.015 }, type: 'broadband' },
+            { label: 'Face',  size: 0.025, contrast: { bright: 0.20, cloudy: 0.12, overcast: 0.04, night: 0.01 }, type: 'broadband' },
+        ],
+        descriptions: {
+            resolved: 'You can recognize the person\'s face at this distance.',
+            detected: 'You can see someone is there, but can\'t make out facial features.',
+            invisible: 'A dark-clothed pedestrian would likely be very difficult to detect here.',
+        },
+    },
+    {
+        name: 'Pedestrian (hi-vis vest)',
+        distRange: [20, 500], distDefault: 100, distStep: 10, distUnit: 'm', distScale: 1,
+        features: [
+            // ANSI/ISEA 107: fluorescent yellow-green ≥70% luminance factor
+            { label: 'Vest',       size: 0.40, contrast: { bright: 0.85, cloudy: 0.70, overcast: 0.45, night: 0.15 }, type: 'broadband' },
+            // ANSI 5cm (2") retroreflective tape; RA ~600 cd/lx/m² under headlights
+            { label: 'Reflective strips', size: 0.05, contrast: { bright: 0.75, cloudy: 0.55, overcast: 0.30, night: 0.85 }, type: 'broadband' },
+            { label: 'Face',       size: 0.025, contrast: { bright: 0.20, cloudy: 0.12, overcast: 0.04, night: 0.01 }, type: 'broadband' },
+        ],
+        descriptions: {
+            resolved: 'You can recognize the person\'s face and see reflective details.',
+            detected: 'You can spot the hi-vis vest but can\'t make out the face.',
+            invisible: 'Even a hi-vis vest can\'t be detected at this range and lighting.',
+        },
+        retroNote: 'The reflective strips on a hi-vis vest are retroreflective \u2014 they bounce headlight beams back toward the driver, so those strips actually become easier to see at night than in dim daylight.',
+    },
+    {
+        name: 'Car on highway',
+        distRange: [50, 1000], distDefault: 400, distStep: 25, distUnit: 'm', distScale: 1,
+        features: [
+            // Average sedan ~1.78m wide; contrast depends on color vs road
+            { label: 'Car body',    size: 1.8,   contrast: { bright: 0.40, cloudy: 0.28, overcast: 0.12, night: 0.04 }, type: 'broadband' },
+            { label: 'Windshield',  size: 0.40,  contrast: { bright: 0.35, cloudy: 0.22, overcast: 0.10, night: 0.03 }, type: 'broadband' },
+            // Retroreflective plate: high contrast under headlights at night
+            { label: 'Plate text',  size: 0.010, contrast: { bright: 0.88, cloudy: 0.65, overcast: 0.30, night: 0.50 }, type: 'broadband' },
+        ],
+        descriptions: {
+            resolved: 'You can read the license plate at this distance.',
+            detected: 'You can see the car but can\'t read its plate.',
+            invisible: 'The car would likely blend into the background at this range.',
+        },
+    },
+    {
+        name: 'Highway exit sign',
+        distRange: [30, 500], distDefault: 76, distStep: 5, distUnit: 'm', distScale: 1,
+        features: [
+            // MUTCD Series E(Modified) 16" uppercase; stroke = 20% of height = 8.1cm
+            // White on green retroreflective sheeting — same material contrast for all features
+            // Night: modern Type III+ sheeting maintains ≥0.78 Michelson under headlights
+            // FHWA legibility: 30-40 ft/inch → 146-195m for 16" letters
+            { label: 'Sign face',      size: 3.6,   contrast: { bright: 0.85, cloudy: 0.70, overcast: 0.55, night: 0.75 }, type: 'broadband' },
+            { label: 'Letter height',   size: 0.406, contrast: { bright: 0.85, cloudy: 0.70, overcast: 0.55, night: 0.75 }, type: 'broadband' },
+            { label: 'Letter strokes',  size: 0.081, contrast: { bright: 0.85, cloudy: 0.70, overcast: 0.55, night: 0.75 }, type: 'broadband' },
+        ],
+        descriptions: {
+            resolved: 'You can read the exit sign text at this distance.',
+            detected: 'You can see the green sign but can\'t read the lettering.',
+            invisible: 'The sign would likely not be visible at this range and lighting.',
+        },
+        retroNote: 'Highway signs use retroreflective sheeting that bounces headlight beams back toward the driver, so contrast actually improves at night compared to overcast daylight.',
+    },
+    {
+        name: 'License plate',
+        distRange: [5, 150], distDefault: 35, distStep: 5, distUnit: 'm', distScale: 1,
+        features: [
+            // US plate: 305mm wide, 70mm char height, ~9-10mm stroke width
+            // Retroreflective background: bright under headlights, dark characters
+            { label: 'Plate body',   size: 0.305, contrast: { bright: 0.80, cloudy: 0.60, overcast: 0.30, night: 0.60 }, type: 'broadband' },
+            { label: 'Characters',   size: 0.070, contrast: { bright: 0.88, cloudy: 0.65, overcast: 0.30, night: 0.60 }, type: 'broadband' },
+            { label: 'Char strokes', size: 0.010, contrast: { bright: 0.88, cloudy: 0.65, overcast: 0.30, night: 0.60 }, type: 'broadband' },
+        ],
+        descriptions: {
+            resolved: 'You can read the plate characters at this distance.',
+            detected: 'You can see the plate but can\'t read the characters.',
+            invisible: 'The plate would likely not be detectable at this range.',
+        },
+        retroNote: 'License plates use a retroreflective background that lights up under headlights, so contrast actually improves at night compared to overcast daylight.',
+    },
+    {
+        name: 'Deer at roadside',
+        distRange: [20, 500], distDefault: 100, distStep: 10, distUnit: 'm', distScale: 1,
+        features: [
+            // Whitetail shoulder height ~0.9-1.0m; fur albedo ~12% vs vegetation ~15-25%
+            // D'Angelo et al. 2023: mean detection 66m low-beam, 90m high-beam
+            { label: 'Body',    size: 1.0,  contrast: { bright: 0.35, cloudy: 0.22, overcast: 0.10, night: 0.03 }, type: 'broadband' },
+            { label: 'Legs',    size: 0.08, contrast: { bright: 0.25, cloudy: 0.15, overcast: 0.06, night: 0.015 }, type: 'broadband' },
+            { label: 'Eye/ear', size: 0.02, contrast: { bright: 0.20, cloudy: 0.12, overcast: 0.04, night: 0.01 }, type: 'broadband' },
+        ],
+        descriptions: {
+            resolved: 'You can see the deer\'s eyes and ears clearly.',
+            detected: 'You can see something is there but can\'t identify details.',
+            invisible: 'A deer would likely be very difficult to see against the roadside at this range.',
+        },
+    },
+];
+
+const LIGHTINGS = [
+    { key: 'bright',   label: 'Bright',   icon: '\u2600\uFE0F' },
+    { key: 'cloudy',   label: 'Cloudy',   icon: '\u26C5' },
+    { key: 'overcast', label: 'Overcast', icon: '\uD83C\uDF25\uFE0F' },
+    { key: 'night',    label: 'Night',    icon: '\uD83C\uDF19' },
+];
+
+// ── Fourier demand models ──
+function broadbandDemand(freq, angularSizeDeg, contrast) {
+    // S_req(f) = sqrt(1 + (pi*f*theta)^2) / C
+    const x = Math.PI * freq * angularSizeDeg;
+    return Math.sqrt(1 + x * x) / contrast;
+}
+
+function textureDemand(freq, angularSizeDeg, contrast) {
+    // Gaussian bandpass centered at f_c = 1/(2*theta), sigma=0.3 in log-freq
+    const fc = 1 / (2 * angularSizeDeg);
+    const sigma = 0.3;
+    const z = Math.log10(freq) - Math.log10(fc);
+    return Math.exp(z * z / (2 * sigma * sigma)) / contrast;
+}
+
+function featureDemand(freq, feat, distMeters) {
+    const angDeg = (feat.size / distMeters) * (180 / Math.PI);
+    const C = feat.contrast[currentLighting];
+    if (C <= 0) return 1e12;
+    if (feat.type === 'texture') return textureDemand(freq, angDeg, C);
+    return broadbandDemand(freq, angDeg, C);
+}
+
+function featureCharFreq(feat, distMeters) {
+    const angDeg = (feat.size / distMeters) * (180 / Math.PI);
+    if (feat.type === 'texture') return 1 / (2 * angDeg);
+    return 1 / (Math.PI * angDeg);
+}
+
+function featureVisible(feat, distMeters, params) {
+    const C = feat.contrast[currentLighting];
+    if (C <= 0) return { visible: false, margin: -Infinity };
+
+    if (feat.type === 'texture') {
+        // Texture: scan across all frequencies — the Gaussian band naturally limits
+        // where detection is possible, so "any frequency" check is correct
+        let bestMarginDb = -Infinity;
+        for (let i = 0; i < 300; i++) {
+            const f = 0.5 * Math.pow(100, i / 299);
+            const csfSens = Math.pow(10, logParabolaCSF(f, params.g, params.f, params.b, params.d));
+            const demSens = featureDemand(f, feat, distMeters);
+            const marginDb = 20 * Math.log10(csfSens / demSens);
+            if (marginDb > bestMarginDb) bestMarginDb = marginDb;
+        }
+        return { visible: bestMarginDb >= 0, margin: bestMarginDb };
+    } else {
+        // Broadband: check at the characteristic frequency where shape/detail
+        // information lives. Demand at charF is always sqrt(2)/C.
+        // When charF < CSF peak, the feature is "trivially large" — clamp to
+        // peak freq so that closer objects never appear harder to see.
+        const charF = featureCharFreq(feat, distMeters);
+        const testF = Math.max(params.f, Math.min(50, charF));
+        const csfSens = Math.pow(10, logParabolaCSF(testF, params.g, params.f, params.b, params.d));
+        const demSens = Math.SQRT2 / C;
+        const marginDb = 20 * Math.log10(csfSens / demSens);
+        return { visible: marginDb >= 0, margin: marginDb };
+    }
+}
+
+function computeVerdict(obj, distMeters, params) {
+    const feats = obj.features.map((feat, i) => {
+        const vis = featureVisible(feat, distMeters, params);
+        const charF = featureCharFreq(feat, distMeters);
+        return { ...feat, index: i, ...vis, charFreq: charF };
+    });
+    const nVisible = feats.filter(f => f.visible).length;
+    let verdict;
+    if (nVisible === 3) verdict = 'resolved';
+    else if (feats[0].visible) verdict = 'detected';
+    else verdict = 'invisible';
+    return { verdict, feats, description: obj.descriptions[verdict] };
+}
+
+// ── URL params ──
+function loadFromURL() {
+    const sp = new URLSearchParams(location.search);
+    const g = parseFloat(sp.get('g'));
+    const f = parseFloat(sp.get('f'));
+    const b = parseFloat(sp.get('b'));
+    const d = parseFloat(sp.get('d'));
+    if ([g, f, b, d].every(v => isFinite(v))) {
+        csfParams = { g, f, b, d };
+    }
+}
+
+// ── Controls setup ──
+function initControls() {
+    const sel = document.getElementById('obj-select');
+    OBJECTS.forEach((obj, i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = obj.name;
+        sel.appendChild(opt);
+    });
+    sel.value = currentObj;
+    updateSlider();
+
+    const pills = document.getElementById('lighting-pills');
+    LIGHTINGS.forEach(l => {
+        const btn = document.createElement('button');
+        btn.className = 'light-pill' + (l.key === currentLighting ? ' active' : '');
+        btn.dataset.key = l.key;
+        btn.textContent = l.icon + ' ' + l.label;
+        btn.onclick = () => {
+            currentLighting = l.key;
+            pills.querySelectorAll('.light-pill').forEach(p => p.classList.toggle('active', p.dataset.key === l.key));
+            scheduleRedraw();
+        };
+        pills.appendChild(btn);
+    });
+
+}
+
+function updateSlider() {
+    const obj = OBJECTS[currentObj];
+    const slider = document.getElementById('dist-slider');
+    slider.min = obj.distRange[0];
+    slider.max = obj.distRange[1];
+    slider.step = obj.distStep;
+    slider.value = obj.distDefault;
+    updateDistLabel();
+}
+
+function updateDistLabel() {
+    const obj = OBJECTS[currentObj];
+    const slider = document.getElementById('dist-slider');
+    document.getElementById('dist-val').textContent = slider.value + ' ' + obj.distUnit;
+}
+
+function onControlChange() {
+    const newObj = parseInt(document.getElementById('obj-select').value);
+    if (newObj !== currentObj) {
+        currentObj = newObj;
+        updateSlider();
+    }
+    updateDistLabel();
+    scheduleRedraw();
+}
+
+function scheduleRedraw() {
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(drawAll);
+}
+
+// ── Canvas drawing ──
+function drawAll() {
+    rafId = null;
+    const canvas = document.getElementById('csf-canvas');
+    const dpr = window.devicePixelRatio || 1;
+    const isMobile = window.innerWidth < 640;
+    const cssW = 1100, cssH = isMobile ? 560 : 520;
+    canvas.width = cssW * dpr;
+    canvas.height = cssH * dpr;
+    canvas.style.width = '100%';
+    canvas.style.height = 'auto';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    const W = cssW, H = cssH;
+    const pad = { top: 24, right: 32, bottom: 56, left: 62 };
+    const pW = W - pad.left - pad.right;
+    const pH = H - pad.top - pad.bottom;
+
+    const lfMin = -0.3, lfMax = 1.75;
+
+    // Auto-scale Y
+    const curve = getCSFCurve(csfParams);
+    let computedLsMax = 2.65;
+    for (const pt of curve) {
+        if (pt.logS > computedLsMax) computedLsMax = pt.logS;
+    }
+    const lsMax = computedLsMax + 0.15;
+    const lsMin = -0.3;
+
+    const tX = lf => pad.left + (lf - lfMin) / (lfMax - lfMin) * pW;
+    const tY = ls => pad.top + pH - (ls - lsMin) / (lsMax - lsMin) * pH;
+
+    // ── Background ──
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+    bgGrad.addColorStop(0, '#0c0c10');
+    bgGrad.addColorStop(1, '#08080c');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, W, H);
+
+    // ── Grid ──
+    const freqs = [0.5, 1, 2, 4, 8, 16, 32];
+    const senss = [1, 3, 10, 30, 100, 300];
+    if (lsMax > Math.log10(300) + 0.1) senss.push(1000);
+    if (lsMax > Math.log10(1000) + 0.1) senss.push(3000);
+    ctx.lineWidth = 1;
+
+    freqs.forEach(f => {
+        const x = tX(Math.log10(f));
+        if (x < pad.left || x > pad.left + pW) return;
+        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + pH); ctx.stroke();
+    });
+    senss.forEach(s => {
+        const y = tY(Math.log10(s));
+        if (y < pad.top || y > pad.top + pH) return;
+        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pW, y); ctx.stroke();
+    });
+
+    // ── Build CSF curve points ──
+    const pts = [];
+    for (const pt of curve) {
+        if (pt.logS < lsMin - 0.5) continue;
+        pts.push({ x: tX(Math.log10(pt.freq)), y: tY(pt.logS), logS: pt.logS });
+    }
+
+    function drawSmoothCurve(points) {
+        if (points.length < 2) return;
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        if (points.length === 2) { ctx.lineTo(points[1].x, points[1].y); return; }
+        for (let i = 0; i < points.length - 1; i++) {
+            const p0 = points[Math.max(0, i - 1)];
+            const p1 = points[i];
+            const p2 = points[i + 1];
+            const p3 = points[Math.min(points.length - 1, i + 2)];
+            ctx.bezierCurveTo(
+                p1.x + (p2.x - p0.x) / 6, p1.y + (p2.y - p0.y) / 6,
+                p2.x - (p3.x - p1.x) / 6, p2.y - (p3.y - p1.y) / 6,
+                p2.x, p2.y
+            );
+        }
+    }
+
+    // ── Object overlay ──
+    const obj = OBJECTS[currentObj];
+    const slider = document.getElementById('dist-slider');
+    const distDisplay = parseFloat(slider.value);
+    const distMeters = distDisplay * obj.distScale;
+
+    // Compute composite demand (min across features) and individual demands
+    const nSamples = 400;
+    const demandPts = [];  // { x, yCSF, yDemand } for composite overlay
+    const featureDemandCurves = obj.features.map(() => []);
+    const featureColors = ['#5B9CF5', '#F5A623', '#A78BFA'];
+
+    for (let i = 0; i < nSamples; i++) {
+        const lf = lfMin + (lfMax - lfMin) * i / (nSamples - 1);
+        const freq = Math.pow(10, lf);
+        const logS = logParabolaCSF(freq, csfParams.g, csfParams.f, csfParams.b, csfParams.d);
+        const csfSens = Math.pow(10, logS);
+        const x = tX(lf);
+
+        let minDemand = Infinity;
+        obj.features.forEach((feat, fi) => {
+            const dem = featureDemand(freq, feat, distMeters);
+            if (dem < minDemand) minDemand = dem;
+            const logDem = Math.log10(Math.max(1e-3, dem));
+            featureDemandCurves[fi].push({ x, y: tY(logDem), logDem });
+        });
+
+        const logDem = Math.log10(Math.max(1e-3, minDemand));
+        demandPts.push({ x, yCSF: tY(logS), yDemand: tY(logDem), logS, logDem });
+    }
+
+    // Clip to plot area for overlay
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(pad.left, pad.top, pW, pH);
+    ctx.clip();
+
+    // Draw green/red fill between CSF and demand
+    for (let i = 0; i < demandPts.length - 1; i++) {
+        const a = demandPts[i], b = demandPts[i + 1];
+        const csfAbove = a.logS > a.logDem && b.logS > b.logDem;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.yCSF);
+        ctx.lineTo(b.x, b.yCSF);
+        ctx.lineTo(b.x, b.yDemand);
+        ctx.lineTo(a.x, a.yDemand);
+        ctx.closePath();
+        if (csfAbove) {
+            ctx.fillStyle = 'rgba(0,255,204,0.10)';
+        } else {
+            ctx.fillStyle = 'rgba(255,69,58,0.08)';
+        }
+        ctx.fill();
+    }
+
+    // Draw individual feature demand curves
+    obj.features.forEach((feat, fi) => {
+        const pts = featureDemandCurves[fi];
+        ctx.save();
+        ctx.setLineDash(isMobile ? [6, 5] : [4, 4]);
+        ctx.strokeStyle = featureColors[fi];
+        ctx.globalAlpha = isMobile ? 0.6 : 0.45;
+        ctx.lineWidth = isMobile ? 2.5 : 1.5;
+        ctx.beginPath();
+        let started = false;
+        for (const p of pts) {
+            if (p.y < pad.top - 20 || p.y > pad.top + pH + 20) {
+                started = false;
+                continue;
+            }
+            if (!started) { ctx.moveTo(p.x, p.y); started = true; }
+            else ctx.lineTo(p.x, p.y);
+        }
+        ctx.stroke();
+        ctx.restore();
+    });
+
+    // Feature markers at characteristic frequencies
+    obj.features.forEach((feat, fi) => {
+        const charF = featureCharFreq(feat, distMeters);
+        if (charF < Math.pow(10, lfMin) || charF > Math.pow(10, lfMax)) return;
+        const x = tX(Math.log10(charF));
+        const dem = featureDemand(charF, feat, distMeters);
+        const y = tY(Math.log10(Math.max(1e-3, dem)));
+        if (y < pad.top - 5 || y > pad.top + pH + 5) return;
+
+        ctx.save();
+        ctx.fillStyle = featureColors[fi];
+        ctx.globalAlpha = isMobile ? 0.9 : 0.7;
+        ctx.beginPath();
+        ctx.arc(x, y, isMobile ? 7 : 4, 0, Math.PI * 2);
+        ctx.fill();
+        if (!isMobile) {
+            // Label (desktop only)
+            ctx.globalAlpha = 0.6;
+            ctx.font = '500 9px "DM Sans", sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(feat.label, x + 7, y + 3);
+        }
+        ctx.restore();
+    });
+
+    ctx.restore(); // end clip
+
+    // ── CSF Curve (drawn on top of overlay) ──
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(pad.left - 1, pad.top - 1, pW + 2, pH + 2);
+    ctx.clip();
+
+    // Gradient fill under curve
+    const curvGrad = ctx.createLinearGradient(0, pad.top, 0, pad.top + pH);
+    curvGrad.addColorStop(0, 'rgba(0,255,204,0.12)');
+    curvGrad.addColorStop(0.7, 'rgba(0,255,204,0.03)');
+    curvGrad.addColorStop(1, 'rgba(0,255,204,0.0)');
+    const fillPts = pts.filter(p => p.logS >= lsMin);
+    if (fillPts.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(fillPts[0].x, fillPts[0].y);
+        for (let i = 0; i < fillPts.length - 1; i++) {
+            const p0 = fillPts[Math.max(0, i - 1)];
+            const p1 = fillPts[i];
+            const p2 = fillPts[i + 1];
+            const p3 = fillPts[Math.min(fillPts.length - 1, i + 2)];
+            ctx.bezierCurveTo(
+                p1.x + (p2.x - p0.x) / 6, p1.y + (p2.y - p0.y) / 6,
+                p2.x - (p3.x - p1.x) / 6, p2.y - (p3.y - p1.y) / 6,
+                p2.x, p2.y
+            );
+        }
+        ctx.lineTo(fillPts[fillPts.length - 1].x, pad.top + pH);
+        ctx.lineTo(fillPts[0].x, pad.top + pH);
+        ctx.closePath();
+        ctx.fillStyle = curvGrad;
+        ctx.fill();
+    }
+
+    // Glow pass
+    drawSmoothCurve(pts);
+    ctx.strokeStyle = 'rgba(0,255,204,0.3)';
+    ctx.lineWidth = 8;
+    ctx.filter = 'blur(6px)';
+    ctx.stroke();
+    ctx.filter = 'none';
+
+    // Main stroke
+    drawSmoothCurve(pts);
+    ctx.strokeStyle = '#00ffcc';
+    ctx.lineWidth = isMobile ? 3.5 : 2.5;
+    ctx.stroke();
+
+    ctx.restore(); // end clip
+
+    // ── X-Axis ──
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.font = '500 12px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    freqs.forEach(f => {
+        const x = tX(Math.log10(f));
+        if (x >= pad.left && x <= pad.left + pW)
+            ctx.fillText(String(f), x, pad.top + pH + 18);
+    });
+    ctx.fillStyle = 'rgba(255,255,255,0.30)';
+    ctx.font = '400 10px "DM Sans", sans-serif';
+    ctx.fillText('Spatial Frequency (cpd)', pad.left + pW / 2, pad.top + pH + 36);
+    ctx.font = '400 9px "JetBrains Mono", monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.textAlign = 'left';
+    ctx.fillText('Coarse', pad.left, pad.top + pH + 50);
+    ctx.textAlign = 'right';
+    ctx.fillText('Fine', pad.left + pW, pad.top + pH + 50);
+
+    // ── Y-Axis ──
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.font = '500 12px "JetBrains Mono", monospace';
+    ctx.textAlign = 'right';
+    senss.forEach(s => {
+        const y = tY(Math.log10(s));
+        if (y >= pad.top && y <= pad.top + pH)
+            ctx.fillText(String(s), pad.left - 8, y + 4);
+    });
+    ctx.save();
+    ctx.translate(14, pad.top + pH / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.30)';
+    ctx.font = '400 10px "DM Sans", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Sensitivity (1/contrast)', 0, 0);
+    ctx.restore();
+
+    // ── Plot border ──
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(pad.left, pad.top, pW, pH);
+
+    // ── Legend (desktop only) ──
+    if (!isMobile) {
+        const legX = pad.left + pW - 180, legY = pad.top + 10;
+        ctx.font = '500 11px "DM Sans", sans-serif';
+        ctx.textAlign = 'left';
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = '#00ffcc';
+        ctx.globalAlpha = 0.7;
+        ctx.fillRect(legX, legY, 18, 2);
+        ctx.fillText('Your CSF', legX + 24, legY + 5);
+        obj.features.forEach((feat, fi) => {
+            const y = legY + (fi + 1) * 20;
+            ctx.fillStyle = featureColors[fi];
+            ctx.globalAlpha = 0.5;
+            ctx.setLineDash([4, 4]);
+            ctx.strokeStyle = featureColors[fi];
+            ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(legX, y + 1); ctx.lineTo(legX + 18, y + 1); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillText(feat.label, legX + 24, y + 5);
+        });
+        ctx.globalAlpha = 1;
+    }
+
+    // ── Update verdict card ──
+    updateVerdict(obj, distMeters);
+}
+
+function marginGrade(marginDb) {
+    if (marginDb > 10)  return { grade: 'clear',     icon: '\u2713', label: 'Clear' };
+    if (marginDb > 3)   return { grade: 'likely',    icon: '\u2713', label: 'Likely' };
+    if (marginDb > -1)  return { grade: 'marginal',  icon: '\u25CB', label: 'Marginal' };
+    if (marginDb > -6)  return { grade: 'unlikely',  icon: '\u25CB', label: 'Unlikely' };
+    return                       { grade: 'invisible', icon: '\u2717', label: 'Invisible' };
+}
+
+function updateVerdict(obj, distMeters) {
+    const result = computeVerdict(obj, distMeters, csfParams);
+    const statusEl = document.getElementById('verdict-status');
+    statusEl.textContent = result.verdict.toUpperCase();
+    // Add estimated qualifier for patient mode
+    if (hasPatientData) statusEl.textContent = 'ESTIMATED: ' + statusEl.textContent;
+
+    statusEl.className = 'verdict-status ' + result.verdict;
+
+    const descEl = document.getElementById('verdict-desc');
+    if (currentLighting === 'night' && obj.retroNote) {
+        descEl.textContent = result.description + ' ' + obj.retroNote;
+    } else {
+        descEl.textContent = result.description;
+    }
+
+    const rowsEl = document.getElementById('feat-rows');
+    const featureLabels = ['Detection', 'Shape', 'Detail'];
+    rowsEl.innerHTML = result.feats.map((f, i) => {
+        const mg = marginGrade(f.margin);
+        const charF = f.charFreq;
+        const freqStr = charF >= 0.5 && charF <= 100 ? charF.toFixed(1) + ' cpd' : '';
+        const marginStr = isFinite(f.margin) ? (f.margin >= 0 ? '+' : '') + f.margin.toFixed(0) + ' dB' : '';
+        const marginClass = f.margin >= 0 ? 'pos' : 'neg';
+        return `<div class="feat-row">
+            <span class="feat-icon ${mg.grade}">${mg.icon}</span>
+            <span class="feat-label ${mg.grade}">${mg.label}</span>
+            <span class="feat-name">${featureLabels[i]}: ${f.label}</span>
+            <span class="feat-freq">${freqStr}</span>
+            <span class="feat-margin ${marginClass}">${marginStr}</span>
+        </div>`;
+    }).join('');
+
+    updateExplanation(obj, distMeters);
+}
+
+// ── Dynamic explanation ──
+function updateExplanation(obj, distMeters) {
+    const el = document.getElementById('explain-body');
+    if (!el) return;
+    const result = computeVerdict(obj, distMeters, csfParams);
+    const featureColors = ['#5B9CF5', '#F5A623', '#A78BFA'];
+    const lfMin = -0.3, lfMax = 1.75;
+    const fMin = Math.pow(10, lfMin);   // ~0.5 cpd
+    const fMax = Math.pow(10, lfMax);   // ~56 cpd
+
+    const slider = document.getElementById('dist-slider');
+    const distDisplay = slider.value + ' ' + obj.distUnit;
+
+    function cs(label, color) {
+        return '<span style="color:' + color + ';font-weight:500">' + label + '</span>';
+    }
+
+    // Paragraph 1 — always the same structure
+    const p1 = 'The cyan curve is your contrast sensitivity\u200a\u2014\u200ahow faint a pattern your eyes can detect at each level of detail. Coarse patterns are on the left; fine detail is on the right. The three dashed lines show the minimum sensitivity your eyes <em>need</em> to pick up different parts of the ' + obj.name + ': ' + cs(result.feats[0].label, featureColors[0]) + ', ' + cs(result.feats[1].label, featureColors[1]) + ', and ' + cs(result.feats[2].label, featureColors[2]) + '. Wherever your curve sits above a demand line (the green-tinted zone), you can see that feature. Where demand rises above your curve (red zone), that detail is invisible to you. These demand lines curve upward toward the right because finer detail requires progressively more sensitivity\u200a\u2014\u200aand at some point they climb off the top of the chart entirely, meaning your eyes simply cannot access that level of detail at this distance.';
+
+    // Paragraph 2 — per-feature sentences
+    const sentences = result.feats.map((f, i) => {
+        const charF = f.charFreq;
+        const cLabel = cs(f.label, featureColors[i]);
+        const isMarginal = f.margin >= -1 && f.margin <= 3;
+
+        if (f.visible || isMarginal) {
+            if (charF < fMin) {
+                return 'The ' + cLabel + ' is so large at ' + distDisplay + ' that its demand sits off the left edge of the chart\u200a\u2014\u200aeasily within your range.';
+            }
+            if (charF > fMax) {
+                return 'The ' + cLabel + ' requires finer detail than your eyes can access\u200a\u2014\u200aits demand climbs off the right side of the chart.';
+            }
+            if (isMarginal && !f.visible) {
+                return 'The ' + cLabel + ' dot at ' + charF.toFixed(1) + ' cpd sits just barely above your CSF\u200a\u2014\u200aright at the edge of visibility.';
+            }
+            if (isMarginal) {
+                return 'The ' + cLabel + ' dot at ' + charF.toFixed(1) + ' cpd is just barely visible\u200a\u2014\u200ayour sensitivity there only narrowly exceeds what\u2019s needed.';
+            }
+            return 'The ' + cLabel + ' dot sits at ' + charF.toFixed(1) + ' cpd\u200a\u2014\u200ayour sensitivity there is well above what\u2019s needed, so you can see this feature clearly.';
+        } else {
+            if (charF > fMax) {
+                return 'The ' + cLabel + ' requires finer detail than your eyes can access\u200a\u2014\u200aits demand climbs off the right side of the chart.';
+            }
+            if (charF < fMin) {
+                return 'The ' + cLabel + ' sits off the left edge yet still demands more contrast than you have\u200a\u2014\u200athe lighting is too low.';
+            }
+            return 'The ' + cLabel + ' dot at ' + charF.toFixed(1) + ' cpd shows the demand line above your CSF\u200a\u2014\u200ayou don\u2019t have enough sensitivity for that fine detail.';
+        }
+    });
+
+    // Verdict summary sentence
+    const vName = obj.name;
+    let summary;
+    if (result.verdict === 'resolved')
+        summary = 'Overall, you can fully resolve the ' + vName + ' at ' + distDisplay + ' in ' + currentLighting + ' conditions.';
+    else if (result.verdict === 'detected')
+        summary = 'You can detect the ' + vName + ' at ' + distDisplay + ', but some finer details are beyond your reach in ' + currentLighting + ' conditions.';
+    else
+        summary = 'At ' + distDisplay + ' in ' + currentLighting + ' conditions, the ' + vName + ' is effectively invisible to you.';
+
+    el.innerHTML = '<p>' + p1 + '</p><p>' + sentences.join(' ') + ' ' + summary + '</p>';
+}
+
+// ── Mode detection ──
+const sp = new URLSearchParams(location.search);
+const isEmbed = sp.has('embed');
+const hasPatientData = ['g','f','b','d'].every(k => sp.has(k) && isFinite(parseFloat(sp.get(k))));
+if (isEmbed) document.body.classList.add('embed');
+document.body.classList.add(hasPatientData ? 'mode-patient' : 'mode-demo');
+
+// ── Init ──
+loadFromURL();
+initControls();
+
+if (hasPatientData) {
+    document.querySelector('.title').textContent = 'Explore Your Vision';
+    var db = document.getElementById('patient-disclaimer-banner'); if (db) db.style.display = 'block';
+    document.querySelector('.subtitle').textContent =
+        'This is your contrast sensitivity profile from the interactive demonstration. Explore how it relates to everyday visual experiences at different distances and lighting. This is for educational purposes only.';
+    document.getElementById('formula-text').textContent =
+        'log\u2081\u2080(S) = ' + csfParams.g.toFixed(2) + ' \u2212 ' + csfParams.b.toFixed(2) + '\u00b7\u0394\u00b2 \u2212 ' + csfParams.d.toFixed(2) + '\u00b7\u0394\u2074';
+    document.getElementById('formula-peak').textContent =
+        'Peak: ' + csfParams.f.toFixed(1) + ' cpd';
+} else {
+    document.querySelector('.subtitle').textContent =
+        'See how contrast sensitivity maps onto real-world objects. The curve below represents a typical observer with 20/20 vision.';
+}
+
+scheduleRedraw();
+window.addEventListener('resize', scheduleRedraw);
+</script>
+</body></html>

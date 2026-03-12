@@ -5,6 +5,76 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manifold</title>
     <link rel="stylesheet" href="main.css">
+    <style>
+        /* ── Patient-mode disclaimer ─────────────────────────── */
+        #patient-disclaimer {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: rgba(10,10,12,0.92);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(255,255,255,0.06);
+            padding: 10px 20px;
+            text-align: center;
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.35);
+            font-family: 'DM Sans', system-ui, sans-serif;
+            line-height: 1.5;
+            z-index: 100;
+        }
+        /* ── Patient results styling ─────────────────────────── */
+        .patient-only { display: none; }
+        .patient-heading {
+            font-size: 1.1rem;
+            font-weight: 300;
+            color: rgba(255,255,255,0.88);
+            margin-bottom: 6px;
+        }
+        .patient-subtext {
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.4);
+            line-height: 1.6;
+            max-width: 440px;
+            margin: 0 auto 20px;
+        }
+        .explorer-btn {
+            display: inline-block;
+            background: #00ffcc;
+            color: #0a0a0c;
+            padding: 14px 32px;
+            border-radius: 24px;
+            font-family: 'DM Sans', system-ui, sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            margin-top: 20px;
+            transition: box-shadow 0.2s ease;
+        }
+        .explorer-btn:hover {
+            box-shadow: 0 0 30px rgba(0,255,204,0.25);
+        }
+        .patient-disclaimer-inline {
+            font-size: 0.55rem;
+            color: rgba(255,255,255,0.22);
+            margin-top: 18px;
+            line-height: 1.5;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        /* ── Notch flag (clinic mode) ────────────────────────── */
+        #notch-flag {
+            display: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: #f5a623;
+            background: rgba(245,166,35,0.08);
+            border: 1px solid rgba(245,166,35,0.15);
+            border-radius: 8px;
+            padding: 8px 14px;
+            margin-top: 12px;
+        }
+    </style>
 </head>
 <body>
 
@@ -36,15 +106,48 @@
         </div>
     </div>
 
-    <!-- Results -->
+    <!-- Results Overlay (both modes share the container) -->
     <div id="results-overlay">
         <div id="result-content">
-            <div class="result-eyebrow">Area Under Log CSF</div>
-            <div class="auc-value" id="final-auc">0.00</div>
-            <div class="rank-label" id="final-rank">—</div>
-            <div class="result-detail" id="final-detail"></div>
-            <canvas id="csf-plot" width="520" height="280" style="margin-top:40px; border-radius:8px;"></canvas>
-            <button class="restart-btn" onclick="location.reload()">Test Again</button>
+
+            <!-- ═══ Clinic Mode Results ═══ -->
+            <div class="clinic-only">
+                <div class="result-eyebrow">Area Under Log CSF</div>
+                <div class="auc-value" id="final-auc">0.00</div>
+                <div class="rank-label" id="final-rank">—</div>
+                <div class="result-detail" id="final-detail"></div>
+                <div id="notch-flag"></div>
+            </div>
+
+            <!-- ═══ Patient Mode Results ═══ -->
+            <div class="patient-only">
+                <div class="patient-heading">Your Contrast Sensitivity Profile</div>
+                <div class="patient-subtext">
+                    This curve shows how your eyes respond to different levels of visual detail —
+                    from broad shapes (left) to fine textures (right). Higher means more sensitive.
+                </div>
+            </div>
+
+            <!-- Shared: CSF Plot -->
+            <canvas id="csf-plot" width="520" height="280" style="margin-top:20px; border-radius:8px;"></canvas>
+
+            <!-- ═══ Patient Mode CTA ═══ -->
+            <div class="patient-only">
+                <a id="explorer-link" class="explorer-btn" href="#" target="_blank">
+                    See What Your Vision Means →
+                </a>
+                <div class="patient-disclaimer-inline">
+                    For educational and informational purposes only. Not a medical examination or diagnosis.
+                    Results depend on screen calibration and testing conditions. Consult a licensed eye care
+                    professional for clinical assessment.
+                </div>
+            </div>
+
+            <!-- ═══ Clinic Mode Actions ═══ -->
+            <div class="clinic-only">
+                <button class="restart-btn" onclick="location.reload()" style="margin-top:24px;">Test Again</button>
+            </div>
+
         </div>
     </div>
 
@@ -52,6 +155,14 @@
     <div id="gear-btn" onclick="window.location.href='calibration.html'">⚙</div>
     <div id="stale-cal-warning" onclick="window.location.href='calibration.html'">
         Calibration >24h old — recalibrate
+    </div>
+
+    <!-- Patient-mode disclaimer footer -->
+    <div id="patient-disclaimer">
+        This interactive demonstration is for educational purposes only and is not a medical examination.
+        Results may vary based on screen calibration, ambient lighting, and testing conditions.
+        Do not use these results to make medical decisions. If you have concerns about your vision,
+        please consult a licensed eye care professional.
     </div>
 
     <!-- Dependencies -->

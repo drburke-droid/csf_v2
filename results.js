@@ -11,9 +11,10 @@
 /**
  * @typedef {object} TestResult
  * @property {number} aulcsf     – area under the log CSF
- * @property {string} rank       – normative rank label
+ * @property {string} rank       – normative rank label (clinic mode only)
  * @property {string} detail     – formatted parameter summary
  * @property {object} params     – raw CSF parameter estimates
+ * @property {number} notchProb  – posterior probability of a frequency-band deficit
  */
 
 /**
@@ -36,5 +37,7 @@ export function computeResult(engine) {
     const peakSens = Math.pow(10, params.peakGain).toFixed(0);
     const detail   = `Peak: ${peakSens} @ ${params.peakFreq.toFixed(1)} cpd | BW: ${params.bandwidth.toFixed(1)} oct`;
 
-    return { aulcsf, rank, detail, params };
+    const notchProb = engine.getNotchProbability();
+
+    return { aulcsf, rank, detail, params, notchProb };
 }

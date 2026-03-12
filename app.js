@@ -5,6 +5,7 @@
  * happens on the connected tablet/phone controller.
  *
  * Modes: gabor | tumblingE | sloan
+ * App modes: clinic (default) | patient (?mode=patient)
  */
 
 import { isCalibrated, getCalibrationData, isCalibrationStale } from './utils.js';
@@ -14,6 +15,7 @@ import { drawCSFPlot }   from './csf-plot.js';
 import { initSync }      from './peer-sync.js';
 import { initKeyboard }  from './keyboard.js';
 import { computeResult } from './results.js';
+import { isPatientMode, isClinicMode, buildExplorerURL, withMode } from './config.js';
 
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -25,6 +27,24 @@ const DEBOUNCE_MS = 250;
 
 // Default mode (can be changed from tablet before test starts)
 let currentModeId = localStorage.getItem('qcsf_mode') || 'sloan';
+
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Patient-mode UI setup
+// ═════════════════════════════════════════════════════════════════════════════
+
+if (isPatientMode()) {
+    // Show disclaimer footer
+    const disc = document.getElementById('patient-disclaimer');
+    if (disc) disc.style.display = 'block';
+
+    // Update calibration link to preserve mode
+    const calGuardBtn = document.querySelector('#cal-guard button');
+    if (calGuardBtn) calGuardBtn.onclick = () => window.location.href = withMode('calibration.html');
+
+    const gearBtn = document.getElementById('gear-btn');
+    if (gearBtn) gearBtn.onclick = () => window.location.href = withMode('calibration.html');
+}
 
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -211,14 +231,19 @@ function initPeerSync() {
     try {
         sync = initSync(laneID, {
             onReady(tabletURL) {
+                // Append mode to tablet URL
+                const finalURL = isPatientMode()
+                    ? tabletURL + '&mode=patient'
+                    : tabletURL;
+
                 if (typeof QRCode !== 'undefined') {
                     new QRCode(document.getElementById('qrcode'), {
-                        text: tabletURL, width: 180, height: 180,
+                        text: finalURL, width: 180, height: 180,
                         colorDark: '#000', colorLight: '#fff'
                     });
                 } else {
                     const qrEl = document.getElementById('qrcode');
-                    if (qrEl) qrEl.innerHTML = `<p style="font-size:0.65rem; opacity:0.5; word-break:break-all;">${tabletURL}</p>`;
+                    if (qrEl) qrEl.innerHTML = `<p style="font-size:0.65rem; opacity:0.5; word-break:break-all;">${finalURL}</p>`;
                 }
             },
 
@@ -247,7 +272,7 @@ function initPeerSync() {
 
             onCommand(action) {
                 if (action === 'restart') location.reload();
-                if (action === 'calibrate') window.location.href = 'calibration.html';
+                if (action === 'calibrate') window.location.href = withMode('calibration.html');
             },
 
             onDisconnect() {
@@ -318,31 +343,93 @@ function finish() {
     try {
         result = computeResult(engine);
     } catch (e) {
-        result = { aulcsf: 0, rank: 'ERROR', detail: 'Failed', params: engine.getExpectedEstimate() };
+        result = { aulcsf: 0, rank: 'ERROR', detail: 'Failed', params: engine.getExpectedEstimate(), notchProb: 0 };
     }
 
     if (result.aulcsf <= 0) {
         result.rank = 'INCONCLUSIVE';
     }
 
-    // Update display
-    document.getElementById('results-overlay').style.display = 'flex';
-    const setEl = (id, t) => { const e = document.getElementById(id); if (e) e.innerText = t; };
-    setEl('final-auc', result.aulcsf.toFixed(2));
-    setEl('final-rank', result.rank);
-    setEl('final-detail', result.detail);
+    const explorerURL = buildExplorerURL(result.params);
 
+    if (isPatientMode()) {
+        finishPatient(result, explorerURL);
+    } else {
+        finishClinic(result, explorerURL);
+    }
+
+    if (teardownKeyboard) teardownKeyboard();
+}
+
+/** Patient mode: educational framing, no scores, Explorer CTA */
+function finishPatient(result, explorerURL) {
+    // Show patient results overlay
+    const overlay = document.getElementById('results-overlay');
+    overlay.style.display = 'flex';
+
+    // Hide clinic elements, show patient elements
+    const clinicEls = overlay.querySelectorAll('.clinic-only');
+    const patientEls = overlay.querySelectorAll('.patient-only');
+    clinicEls.forEach(el => el.style.display = 'none');
+    patientEls.forEach(el => el.style.display = '');
+
+    // Draw the CSF plot (BMA curve — can show dips and non-standard shapes)
     try {
         const plotCanvas = document.getElementById('csf-plot');
         if (plotCanvas) drawCSFPlot(plotCanvas, engine, result.params);
     } catch (e) { /* ignore */ }
 
-    // Send to tablet
+    // Set Explorer link
+    const explorerLink = document.getElementById('explorer-link');
+    if (explorerLink) explorerLink.href = explorerURL;
+
+    // Send to tablet (patient mode — no scores)
+    if (sync && sync.connected) {
+        sync.sendResults(null, null, null, explorerURL);
+    }
+}
+
+/** Clinic mode: full scoring, normative ranking, clinical detail */
+function finishClinic(result, explorerURL) {
+    // Show clinic results overlay
+    const overlay = document.getElementById('results-overlay');
+    overlay.style.display = 'flex';
+
+    // Show clinic elements, hide patient elements
+    const clinicEls = overlay.querySelectorAll('.clinic-only');
+    const patientEls = overlay.querySelectorAll('.patient-only');
+    clinicEls.forEach(el => el.style.display = '');
+    patientEls.forEach(el => el.style.display = 'none');
+
+    // Update scoring display
+    const setEl = (id, t) => { const e = document.getElementById(id); if (e) e.innerText = t; };
+    setEl('final-auc', result.aulcsf.toFixed(2));
+    setEl('final-rank', result.rank);
+    setEl('final-detail', result.detail);
+
+    // Show notch probability if clinically significant
+    if (result.notchProb > 0.5) {
+        const notchEl = document.getElementById('notch-flag');
+        if (notchEl) {
+            const notch = engine.getNotchEstimate();
+            const label = notch
+                ? `Frequency-band deficit detected near ${notch.freq} cpd (p=${(result.notchProb * 100).toFixed(0)}%)`
+                : `Possible frequency-band deficit (p=${(result.notchProb * 100).toFixed(0)}%)`;
+            notchEl.textContent = label;
+            notchEl.style.display = 'block';
+        }
+    }
+
+    // Draw the CSF plot
+    try {
+        const plotCanvas = document.getElementById('csf-plot');
+        if (plotCanvas) drawCSFPlot(plotCanvas, engine, result.params);
+    } catch (e) { /* ignore */ }
+
+    // Send to tablet (full scores)
     if (sync && sync.connected) {
         sync.sendResults(result.aulcsf.toFixed(2), result.rank, result.detail);
     }
-
-    if (teardownKeyboard) teardownKeyboard();
 }
 
 

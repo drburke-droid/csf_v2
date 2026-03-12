@@ -298,7 +298,13 @@
     </div>
 
     <div class="existing-banner" id="existing-banner" style="display:none;">
-        Calibration data found. <a href="index.html">Skip to test →</a>
+        Calibration data found. <a id="skip-link" href="index.html">Skip to test →</a>
+    </div>
+
+    <!-- Patient-mode notice -->
+    <div class="existing-banner" id="patient-cal-notice" style="display:none;">
+        This quick setup helps tailor the demonstration to your screen. Results are approximate
+        and depend on your display and lighting conditions.
     </div>
 
     <!-- ─── Step 1 ────────────────────────────────────────────── -->
@@ -349,7 +355,7 @@
         <div>
             <div class="step-num">Step 03 of 04</div>
             <h2>Viewing Distance</h2>
-            <p class="step-desc">Enter the distance from the patient's eyes to the display.</p>
+            <p class="step-desc" id="dist-desc">Enter the distance from the patient's eyes to the display.</p>
         </div>
         <div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:24px;">
             <div>
@@ -402,6 +408,11 @@
 </div>
 
 <script>
+    // Mode detection
+    const calParams = new URLSearchParams(window.location.search);
+    const calMode = calParams.get('mode') === 'patient' ? 'patient' : 'clinic';
+    const modeSuffix = calMode === 'patient' ? '?mode=patient' : '';
+
     const gammaSlider = document.getElementById('gamma-slider');
     const sizeSlider  = document.getElementById('size-slider');
     const innerCircle = document.getElementById('inner-circle');
@@ -411,11 +422,24 @@
     const distError   = document.getElementById('dist-error');
     const mirrorCheck = document.getElementById('mirror-mode');
 
+    // Patient-mode adjustments
+    if (calMode === 'patient') {
+        document.getElementById('patient-cal-notice').style.display = 'block';
+        document.getElementById('dist-desc').textContent =
+            'Enter the approximate distance from your eyes to this screen.';
+        // Hide mirror mode (not relevant for home use)
+        const mirrorRow = mirrorCheck.closest('.check-row');
+        if (mirrorRow) mirrorRow.style.display = 'none';
+        const mirrorHelp = mirrorRow ? mirrorRow.nextElementSibling : null;
+        if (mirrorHelp && mirrorHelp.tagName === 'P') mirrorHelp.style.display = 'none';
+    }
+
     // Existing calibration
     const ePx = parseFloat(localStorage.getItem('user_px_per_mm'));
     const eD  = parseFloat(localStorage.getItem('user_distance_mm'));
     if (!isNaN(ePx) && !isNaN(eD) && ePx > 0 && eD > 0) {
         document.getElementById('existing-banner').style.display = 'block';
+        document.getElementById('skip-link').href = 'index.html' + modeSuffix;
         const eG = localStorage.getItem('user_gamma_grey');
         if (eG) gammaSlider.value = eG;
         sizeSlider.value = ePx * 85.6;
@@ -503,7 +527,7 @@
         localStorage.setItem('user_distance_mm', mm);
         localStorage.setItem('mirror_mode', mirrorCheck.checked);
         localStorage.setItem('cal_timestamp', new Date().toISOString());
-        window.location.href = 'index.html';
+        window.location.href = 'index.html' + modeSuffix;
     }
 
     distInput.addEventListener('input', () => { distInput.classList.remove('invalid'); distError.textContent = ''; });

@@ -5,7 +5,7 @@
  *
  * Display → Tablet:
  *   { type: 'state',   mode, labels, keys, trial, maxTrials, responseType }
- *   { type: 'results', score, rank, detail }
+ *   { type: 'results', score, rank, detail, explorerURL }
  *   { type: 'progress', trial, maxTrials }
  *
  * Tablet → Display:
@@ -73,10 +73,10 @@ export function initSync(laneID, callbacks) {
             }
         },
 
-        /** Send results */
-        sendResults(score, rank, detail) {
+        /** Send results (explorerURL is optional, used in patient mode) */
+        sendResults(score, rank, detail, explorerURL) {
             if (activeConn && activeConn.open) {
-                activeConn.send({ type: 'results', score, rank, detail });
+                activeConn.send({ type: 'results', score, rank, detail, explorerURL });
             }
         },
 

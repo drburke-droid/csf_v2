@@ -1,21 +1,41 @@
 /**
  * qCSF Bayesian Adaptive Engine
  * ==============================
- * Implements the quick Contrast Sensitivity Function method.
+ * Implements the quick Contrast Sensitivity Function method with an
+ * extended model that supports frequency-band-specific sensitivity
+ * deficits (notches).
  *
  * References:
  *   Lesmes, Lu, Baek & Albright (2010). J Vis 10(3):17.
  *   Watson & Ahumada (2005). J Vis 5(9):717-740.
  *   Hou et al. (2010). IOVS 51(10):5365-5377.
+ *   Campbell & Robson (1968). J Physiol 197:551-566.
+ *   Regan, Silver & Murray (1977). Brain 100:563-579.
+ *   Bodis-Wollner (1972). Arch Ophthalmol 88:386-391.
  *
- * CSF Model: Truncated log-parabola with 4 parameters:
+ * CSF Model: Truncated log-parabola with 4 base parameters
+ *   + optional Gaussian notch (2 additional parameters):
+ *
  *   gmax  – peak gain (log10 sensitivity)
  *   fmax  – peak spatial frequency (cpd)
  *   beta  – bandwidth at half-height (octaves)
  *   delta – low-frequency truncation depth (log10 units below peak)
+ *   nD    – notch depth (log10 units, 0 = no notch)
+ *   nF    – notch center frequency (cpd)
+ *
+ * The notch component models selective frequency-band deficits
+ * documented in optic neuritis (Regan et al., 1977), neurological
+ * conditions (Bodis-Wollner, 1972), and amblyopia (Hess & Howell,
+ * 1977). It allows the curve to show dips at specific frequencies
+ * while maintaining normal sensitivity elsewhere.
  *
  * Stimulus selection: one-step-ahead expected entropy minimization
  * with top-decile randomization (Lesmes et al., 2010).
+ *
+ * Curve display uses Bayesian Model Averaging (BMA) — the posterior-
+ * weighted average of all hypothesis curves — which can represent
+ * arbitrary CSF shapes including notches, asymmetries, and multi-
+ * modal patterns (Hoeting et al., 1999).
  */
 
 import { linspace } from './utils.js';
@@ -26,15 +46,19 @@ const KAPPA = Math.log10(2); // ≈0.3010
 // ─── CSF Model ───────────────────────────────────────────────────────────────
 
 /**
- * Truncated log-parabola CSF.
+ * Truncated log-parabola CSF with optional Gaussian notch.
+ *
  * @param {number} freq  – spatial frequency (cpd)
  * @param {number} g     – peak gain (log10 sensitivity)
  * @param {number} f     – peak spatial frequency (cpd)
  * @param {number} b     – bandwidth (octaves)
  * @param {number} d     – low-freq truncation depth (log10 units)
+ * @param {number} [nD=0] – notch depth (log10 units, 0 = no notch)
+ * @param {number} [nF=0] – notch center frequency (cpd)
+ * @param {number} [nW=0.3] – notch width (log10 units, ~1 octave)
  * @returns {number} log10(sensitivity)
  */
-export function logParabolaCSF(freq, g, f, b, d) {
+export function logParabolaCSF(freq, g, f, b, d, nD = 0, nF = 0, nW = 0.3) {
     const betaPrime = Math.log10(Math.pow(2, b));
     const logF    = Math.log10(freq);
     const logFmax = Math.log10(f);
@@ -45,6 +69,12 @@ export function logParabolaCSF(freq, g, f, b, d) {
     if (freq <= f) {
         const truncLevel = g - d;
         if (logSens < truncLevel) logSens = truncLevel;
+    }
+
+    // Gaussian notch: frequency-band-specific sensitivity deficit
+    if (nD > 0 && nF > 0) {
+        const logDist = logF - Math.log10(nF);
+        logSens -= nD * Math.exp(-0.5 * (logDist / nW) * (logDist / nW));
     }
 
     return logSens;
@@ -62,6 +92,13 @@ const DEFAULTS = {
     peakFreqValues:     [0.5, 1, 1.5, 2, 3, 4, 6, 8, 12, 16],
     bandwidthValues:    linspace(1.0, 6.0, 6),
     truncationValues:   [0, 0.5, 1.0, 1.5, 2.0],
+
+    // Notch parameters: model frequency-band-specific deficits
+    notchDepthValues:   [0, 0.5, 1.0],
+    notchFreqValues:    [2, 4, 8],
+    notchWidth:         0.3,              // fixed sigma (log10 units ≈ 1 octave)
+    noNotchPriorWeight: 5.0,              // relative prior weight for no-notch hypotheses
+
     stimFreqs:          [0.5, 1, 1.5, 2, 3, 4, 6, 8, 12, 16, 24],
     stimLogContrasts:   linspace(-3.0, 0.0, 30),
 };
@@ -78,14 +115,24 @@ export class QCSFEngine {
         this.gamma      = 1 / this.numAFC;
         this.lapse      = cfg.lapse;
         this.slopeParam = cfg.psychometricSlope;
+        this.notchWidth = cfg.notchWidth;
 
-        // Build parameter grid  (gmax × fmax × beta × delta)
+        // Build parameter grid  (gmax × fmax × beta × delta × notch)
         this.paramGrid = [];
         for (const g of cfg.peakGainValues)
             for (const f of cfg.peakFreqValues)
                 for (const b of cfg.bandwidthValues)
-                    for (const d of cfg.truncationValues)
-                        this.paramGrid.push({ g, f, b, d });
+                    for (const d of cfg.truncationValues) {
+                        // No-notch hypothesis
+                        this.paramGrid.push({ g, f, b, d, nD: 0, nF: 0 });
+                        // Notch hypotheses (only non-zero depths)
+                        for (const nD of cfg.notchDepthValues) {
+                            if (nD === 0) continue;
+                            for (const nF of cfg.notchFreqValues) {
+                                this.paramGrid.push({ g, f, b, d, nD, nF });
+                            }
+                        }
+                    }
         this.nParams = this.paramGrid.length;
 
         // Build stimulus grid  (frequency × contrast)
@@ -95,8 +142,16 @@ export class QCSFEngine {
                 this.stimGrid.push({ freq, logContrast: logC });
         this.nStim = this.stimGrid.length;
 
-        // Uniform prior
-        this.prior = new Float64Array(this.nParams).fill(1 / this.nParams);
+        // Weighted prior: favor no-notch hypotheses
+        const noNotchW = cfg.noNotchPriorWeight;
+        this.prior = new Float64Array(this.nParams);
+        let total = 0;
+        for (let h = 0; h < this.nParams; h++) {
+            const w = this.paramGrid[h].nD === 0 ? noNotchW : 1.0;
+            this.prior[h] = w;
+            total += w;
+        }
+        for (let h = 0; h < this.nParams; h++) this.prior[h] /= total;
 
         // Precompute p(correct | hypothesis, stimulus)
         this._precompute();
@@ -118,7 +173,10 @@ export class QCSFEngine {
 
             for (let s = 0; s < this.nStim; s++) {
                 const stim    = this.stimGrid[s];
-                const logSens = logParabolaCSF(stim.freq, p.g, p.f, p.b, p.d);
+                const logSens = logParabolaCSF(
+                    stim.freq, p.g, p.f, p.b, p.d,
+                    p.nD, p.nF, this.notchWidth
+                );
 
                 // x = how far above threshold (positive = visible)
                 const x   = logSens - (-stim.logContrast);
@@ -217,7 +275,10 @@ export class QCSFEngine {
         return { peakGain: p.g, peakFreq: p.f, bandwidth: p.b, truncation: p.d };
     }
 
-    /** Posterior mean estimate (averages in log-space for frequency). */
+    /**
+     * Posterior mean estimate of the 4 base parameters.
+     * Used for parametric scoring (AULCSF) and Explorer handoff.
+     */
     getExpectedEstimate() {
         let gM = 0, fM = 0, bM = 0, dM = 0;
         for (let h = 0; h < this.nParams; h++) {
@@ -230,10 +291,99 @@ export class QCSFEngine {
         return { peakGain: gM, peakFreq: Math.pow(10, fM), bandwidth: bM, truncation: dM };
     }
 
+    /**
+     * Posterior probability that a notch is present.
+     * Useful for clinical flagging of frequency-band deficits.
+     */
+    getNotchProbability() {
+        let pNotch = 0;
+        for (let h = 0; h < this.nParams; h++) {
+            if (this.paramGrid[h].nD > 0) pNotch += this.prior[h];
+        }
+        return pNotch;
+    }
+
+    /**
+     * MAP notch estimate (if notch is probable).
+     * Returns { depth, freq } of the highest-posterior notch hypothesis,
+     * or null if the MAP hypothesis has no notch.
+     */
+    getNotchEstimate() {
+        let best = 0;
+        for (let h = 1; h < this.nParams; h++) {
+            if (this.prior[h] > this.prior[best]) best = h;
+        }
+        const p = this.paramGrid[best];
+        if (p.nD === 0) return null;
+        return { depth: p.nD, freq: p.nF };
+    }
+
     /** Evaluate CSF at a specific frequency using given (or default) params. */
     evaluateCSF(freq, params) {
         const p = params || this.getExpectedEstimate();
         return logParabolaCSF(freq, p.peakGain, p.peakFreq, p.bandwidth, p.truncation);
+    }
+
+    /**
+     * Bayesian Model Average (BMA) CSF value at a single frequency.
+     *
+     * Instead of averaging parameters and evaluating a single curve,
+     * this averages the CSF values across all posterior hypotheses.
+     * The result can represent non-standard shapes (dips, notches,
+     * asymmetries) that no single log-parabola could.
+     *
+     * @param {number} freq – spatial frequency (cpd)
+     * @returns {number} posterior-weighted log10(sensitivity)
+     */
+    getBMAValue(freq) {
+        let logS = 0;
+        for (let h = 0; h < this.nParams; h++) {
+            const p = this.paramGrid[h];
+            logS += this.prior[h] * logParabolaCSF(
+                freq, p.g, p.f, p.b, p.d,
+                p.nD, p.nF, this.notchWidth
+            );
+        }
+        return logS;
+    }
+
+    /**
+     * BMA CSF curve for plotting.
+     * Returns an array of {freq, logS} that can represent any shape
+     * supported by the posterior, including mid-frequency dips.
+     *
+     * @param {number} [nPoints=100] – number of curve points
+     * @returns {Array<{freq: number, logS: number}>}
+     */
+    getBMACurve(nPoints = 100) {
+        const curve = [];
+        for (let i = 0; i < nPoints; i++) {
+            const freq = Math.pow(10, -0.3 + i * 2.0 / (nPoints - 1));
+            curve.push({ freq, logS: this.getBMAValue(freq) });
+        }
+        return curve;
+    }
+
+    /**
+     * Compute AULCSF using BMA curve (accounts for notches).
+     * For normative scoring, use computeAULCSF() with parametric params instead.
+     */
+    computeBMAAULCSF() {
+        const N      = 500;
+        const logMin = Math.log10(0.5);
+        const logMax = Math.log10(36);
+        const dLogF  = (logMax - logMin) / N;
+        let area = 0;
+
+        for (let i = 0; i <= N; i++) {
+            const f    = Math.pow(10, logMin + i * dLogF);
+            const logS = this.getBMAValue(f);
+            if (logS > 0) {
+                const w = (i === 0 || i === N) ? 0.5 : 1.0;
+                area += logS * dLogF * w;
+            }
+        }
+        return area;
     }
 
     /** AULCSF: trapezoidal integration of log-sensitivity over log-frequency. */
@@ -256,7 +406,7 @@ export class QCSFEngine {
         return area;
     }
 
-    /** Generate an array of {freq, logS} points for plotting. */
+    /** Generate parametric curve {freq, logS} points for plotting. */
     getCSFCurve(params) {
         const p     = params || this.getExpectedEstimate();
         const curve = [];
