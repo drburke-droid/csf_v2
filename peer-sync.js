@@ -80,6 +80,27 @@ export function initSync(laneID, callbacks) {
             }
         },
 
+        /** Send tutorial step to tablet */
+        sendTutStep(stepData) {
+            if (activeConn && activeConn.open) {
+                activeConn.send({ type: 'tutStep', ...stepData });
+            }
+        },
+
+        /** Send plot image to tablet */
+        sendPlotImage(dataUrl) {
+            if (activeConn && activeConn.open) {
+                activeConn.send({ type: 'plotImage', url: dataUrl });
+            }
+        },
+
+        /** Signal test start to tablet */
+        sendTestStart(maxTrials) {
+            if (activeConn && activeConn.open) {
+                activeConn.send({ type: 'testStart', maxTrials });
+            }
+        },
+
         /** Check if connected */
         get connected() { return activeConn && activeConn.open; },
 

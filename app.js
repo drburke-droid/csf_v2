@@ -11,6 +11,7 @@
 import { isCalibrated, getCalibrationData, isCalibrationStale } from './utils.js';
 import { QCSFEngine }    from './qcsf-engine.js';
 import { createMode }    from './stimulus-modes.js';
+import { drawGabor }     from './gabor.js';
 import { drawCSFPlot }   from './csf-plot.js';
 import { initSync }      from './peer-sync.js';
 import { initKeyboard }  from './keyboard.js';
@@ -85,6 +86,17 @@ let testStarted  = false;
 let lastInputTime = 0;
 let sync         = null;
 
+// Tutorial (patient mode)
+const TUT = [
+    { angle: 0,   key: 'up',      arrow: '↑', name: 'Vertical stripes' },
+    { angle: 90,  key: 'right',   arrow: '→', name: 'Horizontal stripes' },
+    { angle: 45,  key: 'upright', arrow: '↗', name: 'Diagonal right' },
+    { angle: 135, key: 'upleft',  arrow: '↖', name: 'Diagonal left' },
+    { angle: -1,  key: 'none',    arrow: '✕', name: 'No target visible' }
+];
+let inTutorial = false;
+let tutStep = 0;
+
 
 // ═════════════════════════════════════════════════════════════════════════════
 // Mode Initialization
@@ -157,13 +169,106 @@ function showWaiting() {
 
 
 // ═════════════════════════════════════════════════════════════════════════════
+// Patient Mode: Welcome & Tutorial
+// ═════════════════════════════════════════════════════════════════════════════
+
+function showWelcome() {
+    const el = document.getElementById('welcome-overlay');
+    if (el) el.style.display = 'flex';
+}
+
+window.beginTutorial = function() {
+    document.getElementById('welcome-overlay').style.display = 'none';
+    inTutorial = true;
+    tutStep = 0;
+    const tutEl = document.getElementById('tutorial-overlay');
+    if (tutEl) tutEl.style.display = 'flex';
+    renderTutStep(0);
+};
+
+function renderTutStep(idx) {
+    tutStep = idx;
+    const s = TUT[idx];
+    const tc = document.getElementById('tut-canvas');
+
+    document.getElementById('tut-step-label').textContent = `Demo ${idx + 1} of ${TUT.length}`;
+
+    const orientEl = document.getElementById('tut-orient-name');
+    orientEl.style.animation = 'none'; orientEl.offsetHeight;
+    orientEl.textContent = s.name;
+    orientEl.style.animation = 'tutSettle 0.3s ease-out';
+
+    if (s.angle >= 0) {
+        drawGabor(tc, { cpd: 4, contrast: 0.95, angle: s.angle }, cal);
+    } else {
+        const ctx = tc.getContext('2d');
+        const mp = cal.midPoint;
+        ctx.fillStyle = `rgb(${mp},${mp},${mp})`;
+        ctx.fillRect(0, 0, tc.width, tc.height);
+    }
+
+    document.getElementById('tut-arrow').textContent = s.arrow;
+    document.getElementById('tut-key-name').textContent =
+        s.angle >= 0 ? `Press ${s.arrow} for this orientation` : 'Press ✕ when you cannot see stripes';
+
+    document.getElementById('tut-dots').innerHTML = TUT.map((_, i) =>
+        `<div class="tut-dot${i === idx ? ' active' : ''}"></div>`
+    ).join('');
+
+    document.getElementById('tut-hint').textContent =
+        idx < TUT.length - 1
+            ? 'Press the highlighted button on your controller'
+            : 'Last step — press to begin testing';
+
+    if (sync && sync.connected) {
+        sync.sendTutStep({
+            stepIdx: idx, key: s.key, arrow: s.arrow,
+            name: s.name, total: TUT.length
+        });
+    }
+}
+
+function advanceTut(key) {
+    if (key !== TUT[tutStep].key) return;
+    if (tutStep < TUT.length - 1) {
+        renderTutStep(tutStep + 1);
+    } else {
+        // Tutorial complete — start test
+        const tutEl = document.getElementById('tutorial-overlay');
+        if (tutEl) tutEl.style.display = 'none';
+        inTutorial = false;
+        testStarted = true;
+        nextTrial();
+
+        if (sync && sync.connected) {
+            sync.sendTestStart(MAX_TRIALS);
+            sync.sendState({
+                mode: mode.id, labels: mode.labels,
+                keys: mode.keys, responseType: mode.responseType,
+                trial: 0, maxTrials: MAX_TRIALS
+            });
+        }
+    }
+}
+
+
+// ═════════════════════════════════════════════════════════════════════════════
 // Input Handling
 // ═════════════════════════════════════════════════════════════════════════════
 
 function handleInput(value) {
     if (testComplete) return;
 
-    // First input starts the test
+    // Tutorial mode — check if input matches current step
+    if (inTutorial) {
+        advanceTut(value);
+        return;
+    }
+
+    // Patient mode: don't start until tutorial is complete
+    if (isPatientMode() && !testStarted) return;
+
+    // First input starts the test (clinic mode)
     if (!testStarted) {
         testStarted = true;
         nextTrial();
@@ -227,8 +332,11 @@ function initPeerSync() {
         if (so) {
             so.innerHTML = `
                 <p class="sync-fallback">Tablet sync unavailable</p>
-                <button onclick="document.getElementById('sync-overlay').style.display='none'"
-                        class="sync-dismiss-btn">Use Keyboard</button>`;
+                <button class="sync-dismiss-btn" id="sync-fallback-btn">Use Keyboard</button>`;
+            document.getElementById('sync-fallback-btn').onclick = () => {
+                so.style.display = 'none';
+                if (isPatientMode()) showWelcome();
+            };
         }
         return;
     }
@@ -255,6 +363,9 @@ function initPeerSync() {
             onConnect() {
                 const so = document.getElementById('sync-overlay');
                 if (so) so.style.display = 'none';
+
+                // Patient mode: show welcome/tutorial flow
+                if (isPatientMode()) showWelcome();
 
                 // Send current state to newly connected tablet
                 if (mode) {
@@ -388,9 +499,20 @@ function finishPatient(result, explorerURL) {
     const explorerLink = document.getElementById('explorer-link');
     if (explorerLink) explorerLink.href = explorerURL;
 
-    // Send to tablet (patient mode — no scores)
+    // Send to tablet (patient mode — no scores, with Explorer URL)
     if (sync && sync.connected) {
         sync.sendResults(null, null, null, explorerURL);
+
+        // Send downscaled plot image to tablet
+        try {
+            const srcCanvas = document.getElementById('csf-plot');
+            if (srcCanvas) {
+                const phoneCanvas = document.createElement('canvas');
+                phoneCanvas.width = 760; phoneCanvas.height = 528;
+                phoneCanvas.getContext('2d').drawImage(srcCanvas, 0, 0, 760, 528);
+                sync.sendPlotImage(phoneCanvas.toDataURL('image/jpeg', 0.80));
+            }
+        } catch (e) { console.warn('[App] Plot send failed:', e); }
     }
 }
 
@@ -443,3 +565,14 @@ function finishClinic(result, explorerURL) {
 // ═════════════════════════════════════════════════════════════════════════════
 
 initMode(currentModeId);
+
+// Override sync overlay dismiss button for patient mode welcome flow
+if (isPatientMode()) {
+    const syncDismissBtn = document.querySelector('#sync-overlay .sync-dismiss-btn');
+    if (syncDismissBtn) {
+        syncDismissBtn.onclick = () => {
+            document.getElementById('sync-overlay').style.display = 'none';
+            showWelcome();
+        };
+    }
+}

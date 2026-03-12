@@ -44,6 +44,11 @@ body{background:var(--c);color:var(--t1);font-family:var(--f);-webkit-font-smoot
 @keyframes fl{0%{background:var(--as);border-color:var(--a);color:var(--a);box-shadow:0 0 14px var(--ag)}100%{background:var(--s);border-color:var(--b);color:var(--t2);box-shadow:none}}
 
 .dis{opacity:.15;pointer-events:none}
+.db.tut-hl{border-color:#ff453a;background:rgba(255,69,58,.12);box-shadow:0 0 20px rgba(255,69,58,.3);color:#ff453a;animation:tutPulse 1.2s ease-in-out infinite;pointer-events:auto!important;opacity:1!important;font-size:1.4rem!important}
+@keyframes tutPulse{0%,100%{box-shadow:0 0 14px rgba(255,69,58,.2)}50%{box-shadow:0 0 28px rgba(255,69,58,.5)}}
+.tut-step-info{text-align:center;padding:8px 20px 0}
+.tut-step-info .tut-label{font-family:var(--m);font-size:.45rem;letter-spacing:2px;text-transform:uppercase;color:var(--t3)}
+.tut-step-info .tut-name{font-size:.7rem;color:var(--t2);margin-top:2px}
 .hid{display:none!important}
 
 .sbar{padding:10px 20px;text-align:center;flex-shrink:0}
@@ -63,6 +68,10 @@ body{background:var(--c);color:var(--t1);font-family:var(--f);-webkit-font-smoot
 .rv .pt-sub{font-size:.65rem;color:var(--t2);text-align:center;line-height:1.5;max-width:300px}
 .rv .pt-cta{display:inline-block;background:var(--a);color:#0a0a0c;padding:12px 28px;border-radius:20px;font-family:var(--f);font-size:.8rem;font-weight:600;text-decoration:none;margin-top:12px}
 .rv .pt-disc{font-size:.45rem;color:var(--t3);text-align:center;line-height:1.5;max-width:280px;margin-top:12px}
+.rv .rv-plot{width:100%;max-width:320px;border-radius:8px;margin:10px 0}
+.rv .pt-email{display:block;background:0;color:var(--t2);border:1px solid var(--b);padding:10px 24px;border-radius:16px;font-family:var(--f);font-size:.7rem;cursor:pointer;margin-top:8px;text-align:center}
+.rv .pt-email:active{background:var(--as);border-color:var(--a);color:var(--a)}
+.rv .pt-email-hint{font-family:var(--m);font-size:.4rem;color:var(--t3);margin-top:4px;letter-spacing:.5px}
 
 .sp{display:none;position:fixed;inset:0;background:var(--c);z-index:200;flex-direction:column;padding:20px;overflow-y:auto;animation:su .3s var(--ez)}
 .sp.open{display:flex}
@@ -125,7 +134,10 @@ body{background:var(--c);color:var(--t1);font-family:var(--f);-webkit-font-smoot
 <div id="rv-patient" style="display:none;text-align:center;">
 <div class="pt-heading">Test Complete</div>
 <div class="pt-sub">Your contrast sensitivity profile is ready. Explore what it means for everyday vision.</div>
+<img id="rv-plot-img" class="rv-plot" style="display:none" alt="CSF Plot">
 <a id="rv-explorer" class="pt-cta" href="#" target="_blank">See What Your Vision Means →</a>
+<button id="rv-email-btn" class="pt-email" style="display:none" onclick="emailExplorerLink()">Email Link to Myself</button>
+<div id="rv-email-hint" class="pt-email-hint" style="display:none">Recommended — view on a larger screen</div>
 <div class="pt-disc">For educational purposes only. Not a medical examination or diagnosis. Consult a licensed eye care professional for clinical assessment.</div>
 </div>
 </div>
@@ -184,9 +196,12 @@ function initConn(){
 }
 
 function onMsg(d){
-    if(d.type==='state')switchPad(d.mode);
+    if(d.type==='state'){exitTutorial();switchPad(d.mode)}
     if(d.type==='progress')updateRing(d.trial,d.maxTrials);
     if(d.type==='results')showResults(d.score,d.rank,d.detail,d.explorerURL);
+    if(d.type==='tutStep')renderTabletTutStep(d);
+    if(d.type==='testStart')exitTutorial();
+    if(d.type==='plotImage')showPlotImage(d.url);
 }
 
 function send(v){
@@ -252,6 +267,56 @@ function updateRing(t,mx){
     document.getElementById('rnum').textContent=t;
 }
 
+// ── Tutorial ──────────────────────────────────────────
+function renderTabletTutStep(d){
+    // Show d-pad in gabor layout
+    switchPad('gabor');
+    document.getElementById('pad-d').classList.remove('hid');
+    document.getElementById('pad-s').classList.add('hid');
+    document.getElementById('prompt').classList.add('hid');
+
+    // Add/update step info above the d-pad
+    var info=document.getElementById('tut-step-info');
+    if(!info){
+        info=document.createElement('div');
+        info.id='tut-step-info';
+        info.className='tut-step-info';
+        var resp=document.getElementById('resp');
+        resp.insertBefore(info,document.getElementById('pad-d'));
+    }
+    info.innerHTML='<div class="tut-label">Demo '+(d.stepIdx+1)+' of '+d.total+'</div>'
+        +'<div class="tut-name">'+d.name+'</div>';
+    info.style.display='block';
+
+    // Dim all d-pad buttons, highlight target
+    var btns=document.querySelectorAll('.db');
+    btns.forEach(function(b){b.classList.add('dis');b.classList.remove('tut-hl')});
+    var keyMap={'up':'t','right':'l','upright':'r','upleft':'b','none':'c'};
+    var targetP=keyMap[d.key];
+    var target=document.querySelector('.db[data-p="'+targetP+'"]');
+    if(target){target.classList.remove('dis');target.classList.add('tut-hl')}
+}
+
+function exitTutorial(){
+    var btns=document.querySelectorAll('.db');
+    btns.forEach(function(b){b.classList.remove('dis','tut-hl')});
+    var info=document.getElementById('tut-step-info');
+    if(info) info.style.display='none';
+}
+
+function showPlotImage(url){
+    var img=document.getElementById('rv-plot-img');
+    if(img){img.src=url;img.style.display='block'}
+}
+
+function emailExplorerLink(){
+    var link=document.getElementById('rv-explorer');
+    if(!link||!link.href||link.href==='#') return;
+    var subj=encodeURIComponent('Your Contrast Sensitivity Results');
+    var body=encodeURIComponent('Here\u2019s your personalized link to explore your contrast sensitivity results:\n\n'+link.href+'\n\nOpen this on a PC or tablet for the best experience. Your CSF curve data is saved in the link.');
+    window.location.href='mailto:?subject='+subj+'&body='+body;
+}
+
 function showResults(score,rank,detail,explorerURL){
     document.getElementById('resp').style.display='none';
     document.getElementById('tabs').style.display='none';
@@ -260,11 +325,15 @@ function showResults(score,rank,detail,explorerURL){
     const rv=document.getElementById('rv');rv.style.display='flex';
 
     if(appMode==='patient'){
-        // Patient mode: no scores, show Explorer CTA
+        // Patient mode: no scores, show Explorer CTA + email button
         document.getElementById('rv-clinic').style.display='none';
         document.getElementById('rv-patient').style.display='';
         if(explorerURL){
             document.getElementById('rv-explorer').href=explorerURL;
+            var emailBtn=document.getElementById('rv-email-btn');
+            if(emailBtn) emailBtn.style.display='';
+            var emailHint=document.getElementById('rv-email-hint');
+            if(emailHint) emailHint.style.display='';
         }
     } else {
         // Clinic mode: full scores
