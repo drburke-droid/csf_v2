@@ -584,3 +584,32 @@ if (isPatientMode()) {
     if (trb) trb.style.display = 'flex';
     showWelcome();
 }
+
+// Dev mode: skip straight to results with average CSF curve (?dev)
+if (new URLSearchParams(window.location.search).has('dev')) {
+    // Hide all overlays
+    for (const id of ['sync-overlay','welcome-overlay','tutorial-overlay','cal-guard']) {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    }
+    // Create a fresh engine (prior = average normal CSF)
+    const devEngine = new QCSFEngine({ numAFC: 5, psychometricSlope: 3.5 });
+    const devParams = devEngine.getExpectedEstimate();
+    const explorerURL = buildExplorerURL(devParams);
+
+    // Show results overlay
+    const overlay = document.getElementById('results-overlay');
+    overlay.style.display = 'flex';
+    const clinicEls = overlay.querySelectorAll('.clinic-only');
+    const patientEls = overlay.querySelectorAll('.patient-only');
+    clinicEls.forEach(el => el.style.display = 'none');
+    patientEls.forEach(el => el.style.display = 'block');
+
+    try {
+        const plotCanvas = document.getElementById('csf-plot');
+        if (plotCanvas) drawCSFPlot(plotCanvas, devEngine, devParams);
+    } catch (e) { console.error('[Dev] Plot failed:', e); }
+
+    const explorerLink = document.getElementById('explorer-link');
+    if (explorerLink) explorerLink.href = explorerURL;
+}

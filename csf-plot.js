@@ -21,7 +21,7 @@ export function drawCSFPlot(canvas, engine, params) {
     const W   = canvas.width;
     const H   = canvas.height;
 
-    const pad   = { top: 20, right: 20, bottom: 40, left: 55 };
+    const pad   = { top: 20, right: 30, bottom: 50, left: 65 };
     const plotW = W - pad.left - pad.right;
     const plotH = H - pad.top  - pad.bottom;
 
@@ -36,18 +36,55 @@ export function drawCSFPlot(canvas, engine, params) {
     ctx.fillStyle = '#0a0a0c';
     ctx.fillRect(0, 0, W, H);
 
-    // ── Grid lines ───────────────────────────────────────────────────────
-    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-    ctx.lineWidth   = 1;
+    // ── Snellen Letter Background ──────────────────────────────────────
+    // Letters demonstrate the CSF concept: large→small (left→right),
+    // high contrast→low contrast (bottom→top)
+    {
+        const SLOAN = ['C','D','H','K','N','O','R','S','V','Z'];
+        const cols = 8, rows = 7;
+        const cellW = plotW / cols;
+        const cellH = plotH / rows;
+        // Font sizes: large on left, shrinks quickly toward right
+        const maxFont = Math.min(cellH * 0.85, cellW * 1.2);
+        const minFont = Math.max(4, maxFont * 0.04);
+        // Background is #0a0a0c ≈ rgb(10,10,12), so letters lighter = more visible
+        const bgLum = 10;
 
-    for (const f of [0.5, 1, 2, 4, 8, 16, 32]) {
-        const x = toX(Math.log10(f));
-        ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + plotH); ctx.stroke();
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(pad.left, pad.top, plotW, plotH);
+        ctx.clip();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Seeded pseudo-random for consistent letter placement
+        let seed = 42;
+        const rand = () => { seed = (seed * 16807 + 0) % 2147483647; return seed / 2147483647; };
+
+        for (let c = 0; c < cols; c++) {
+            // Size interpolation: steeper exponential so letters shrink fast
+            const t = c / (cols - 1);                       // 0 (left) → 1 (right)
+            const fSize = maxFont * Math.pow(minFont / maxFont, Math.pow(t, 0.6));
+            const cx = pad.left + cellW * (c + 0.5);
+
+            for (let r = 0; r < rows; r++) {
+                // Contrast: bottom row (r = rows-1) = bright white, top row (r = 0) = nearly invisible
+                const ct = r / (rows - 1);                    // 0 (top) → 1 (bottom)
+                // Steep power curve — bottom is bold white, fades fast toward top
+                const alpha = 0.01 + Math.pow(ct, 3.5) * 0.89;
+
+                const cy = pad.top + cellH * (r + 0.5);
+                const letter = SLOAN[Math.floor(rand() * SLOAN.length)];
+
+                ctx.font = `600 ${fSize}px "DM Sans", system-ui, sans-serif`;
+                ctx.fillStyle = `rgba(255,255,255,${alpha.toFixed(3)})`;
+                ctx.fillText(letter, cx, cy);
+            }
+        }
+        ctx.restore();
     }
-    for (const s of [1, 10, 100, 1000]) {
-        const y = toY(Math.log10(s));
-        ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + plotW, y); ctx.stroke();
-    }
+
+    // (grid lines removed — letter background serves as visual reference)
 
     // ── BMA Curve (primary — can show dips and non-standard shapes) ─────
     const bmaCurve = engine.getBMACurve(150);
@@ -89,23 +126,21 @@ export function drawCSFPlot(canvas, engine, params) {
     }
     ctx.stroke();
 
-    // ── Parametric reference curve (dimmed, for comparison) ──────────────
-    if (params) {
-        const paramCurve = engine.getCSFCurve(params);
-        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-        ctx.lineWidth   = 1.5;
-        ctx.setLineDash([4, 4]);
-        ctx.beginPath();
-        started = false;
-        for (const pt of paramCurve) {
-            if (pt.logS < logSMin) continue;
-            const x = toX(Math.log10(pt.freq));
-            const y = toY(pt.logS);
-            if (!started) { ctx.moveTo(x, y); started = true; }
-            else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-        ctx.setLineDash([]);
+    // (parametric reference curve removed)
+
+    // ── Curve region labels (below = visible, above = not) ──────────────
+    {
+        const labelSize = Math.max(10, Math.round(W / 60));
+        ctx.font = `300 ${labelSize}px "DM Sans", system-ui, sans-serif`;
+        ctx.textAlign = 'center';
+
+        // "Visible" — below the curve, toward bottom-left
+        ctx.fillStyle = 'rgba(0,255,204,0.25)';
+        ctx.fillText('visible to you', pad.left + plotW * 0.25, pad.top + plotH * 0.82);
+
+        // "Not visible" — above the curve, toward top-right
+        ctx.fillStyle = 'rgba(255,255,255,0.12)';
+        ctx.fillText('not visible to you', pad.left + plotW * 0.72, pad.top + plotH * 0.15);
     }
 
     // ── Trial Markers ────────────────────────────────────────────────────
@@ -121,23 +156,48 @@ export function drawCSFPlot(canvas, engine, params) {
     }
 
     // ── Axis Labels ──────────────────────────────────────────────────────
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.font      = '10px JetBrains Mono, SF Mono, monospace';
-    ctx.textAlign = 'center';
+    const fontSize = Math.max(11, Math.round(W / 70));
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font      = `${fontSize}px "DM Sans", system-ui, sans-serif`;
 
-    for (const f of [0.5, 1, 2, 4, 8, 16, 32]) {
-        ctx.fillText(String(f), toX(Math.log10(f)), pad.top + plotH + 18);
-    }
-    ctx.fillText('Spatial Frequency (cpd)', W / 2, H - 5);
+    // X-axis: "Coarse Detail" (left) ← → "Fine Detail" (right)
+    ctx.textAlign = 'left';
+    ctx.fillText('Coarse Detail', pad.left + 4, pad.top + plotH + fontSize + 12);
+    ctx.textAlign = 'right';
+    ctx.fillText('Fine Detail', pad.left + plotW - 4, pad.top + plotH + fontSize + 12);
+
+    // X-axis arrow line
+    const arrowY = pad.top + plotH + fontSize + 26;
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pad.left + 4, arrowY);
+    ctx.lineTo(pad.left + plotW - 4, arrowY);
+    ctx.stroke();
+    // arrowhead right
+    ctx.beginPath();
+    ctx.moveTo(pad.left + plotW - 4, arrowY);
+    ctx.lineTo(pad.left + plotW - 12, arrowY - 3);
+    ctx.lineTo(pad.left + plotW - 12, arrowY + 3);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.fill();
+
+    // Y-axis: "High Contrast" (bottom/origin) and "Low Contrast" (top)
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font      = `${fontSize}px "DM Sans", system-ui, sans-serif`;
 
     ctx.save();
-    ctx.translate(12, H / 2);
+    ctx.translate(fontSize + 2, pad.top + plotH - 4);
     ctx.rotate(-Math.PI / 2);
-    ctx.fillText('Sensitivity', 0, 0);
+    ctx.textAlign = 'left';
+    ctx.fillText('High Contrast', 0, 0);
     ctx.restore();
 
+    ctx.save();
+    ctx.translate(fontSize + 2, pad.top + 4);
+    ctx.rotate(-Math.PI / 2);
     ctx.textAlign = 'right';
-    for (const s of [1, 10, 100, 1000]) {
-        ctx.fillText(String(s), pad.left - 8, toY(Math.log10(s)) + 4);
-    }
+    ctx.fillText('Low Contrast', 0, 0);
+    ctx.restore();
 }

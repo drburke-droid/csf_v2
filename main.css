@@ -181,7 +181,8 @@ canvas#stimCanvas {
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 40px;
+    padding: 24px;
+    overflow-y: auto;
     animation: fadeIn 0.6s var(--ease);
 }
 

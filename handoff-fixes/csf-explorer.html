@@ -8,7 +8,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:100%}
 html,body{min-height:100vh}
-body{background:linear-gradient(170deg,#0c0c10 0%,#080810 50%,#0a0a12 100%);font-family:var(--f);color:var(--t1);-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;align-items:center;padding:clamp(24px,5vh,60px) 20px 40px}
+body{background:#0a0a0c;font-family:var(--f);color:var(--t1);-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;align-items:center;padding:clamp(24px,5vh,60px) 20px 40px}
 @keyframes settleUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
@@ -142,7 +142,7 @@ body.embed .ref-section{padding-top:clamp(10px,2vw,16px)}
   <div class="header">
     <div class="brand">Burke Vision Lab</div>
     <div class="title">CSF Explorer</div>
-    <div class="subtitle">See how your contrast sensitivity maps onto real-world objects at different distances and lighting conditions.</div>
+    <div class="subtitle">Explore how a contrast sensitivity curve may relate to everyday visual scenarios at different distances and lighting. For educational purposes only.</div>
   </div>
 
   <div class="patient-disclaimer-banner" id="patient-disclaimer-banner" style="display:none;font-size:.6rem;color:rgba(255,255,255,.35);background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:8px 16px;text-align:center;line-height:1.5;max-width:680px;margin:0 auto">For educational and informational purposes only. Not a medical examination or diagnosis. Actual visibility depends on conditions not captured by a screen-based demonstration.</div>
@@ -152,8 +152,8 @@ body.embed .ref-section{padding-top:clamp(10px,2vw,16px)}
   </div>
 
   <div class="demo-banner" id="demo-banner">
-    <div class="demo-banner-text">You're viewing a typical observer with 20/20 vision. Test your own vision to create your personal CSF curve.</div>
-    <a class="demo-banner-link" href="https://drburke-droid.github.io/csf/" target="_blank" rel="noopener">Take the Contrast Sensitivity Test →</a>
+    <div class="demo-banner-text">You're viewing a typical observer with 20/20 vision.</div>
+    <a class="demo-banner-link" href="https://drburke-droid.github.io/csf/?mode=patient" target="_blank" rel="noopener">Click here to create your own CSF →</a>
   </div>
 
   <div class="canvas-wrap">
@@ -183,14 +183,14 @@ body.embed .ref-section{padding-top:clamp(10px,2vw,16px)}
   <div class="ref-section">
     <div class="ref-heading">How this data was derived</div>
     <div class="ref-body">
-      <p><strong>CSF model</strong> — Log-parabola contrast sensitivity function from Lesmes et al. (2010), "Bayesian adaptive estimation of the contrast sensitivity function: The quick CSF method." The four parameters (gain, peak frequency, bandwidth, truncation) are fitted from the patient's adaptive test results.</p>
+      <p><strong>CSF model</strong> — Log-parabola contrast sensitivity function from Lesmes et al. (2010), "Bayesian adaptive estimation of the contrast sensitivity function: The quick CSF method." The four parameters (gain, peak frequency, bandwidth, truncation) are fitted from the observer's adaptive session results.</p>
       <p><strong>Object sizes</strong> — Golf ball: USGA Rules of Golf (diameter 42.67 mm, dimple ~3.5 mm). Hi-vis vest: ANSI/ISEA 107-2020 (5 cm retroreflective tape). Highway signs: FHWA MUTCD Series E(Modified) (16-inch uppercase, 20% stroke width). Pedestrian: anthropometric averages (shoulder width ~45 cm, head ~25 cm). Deer: whitetail shoulder height ~1 m; D'Angelo et al. (2023), "Factors affecting driver detection of deer at night."</p>
       <p><strong>Contrast values</strong> — Michelson contrast computed from published surface reflectance data. Daytime values derived from material albedo against typical backgrounds. Night retroreflective values based on ASTM E810 standard practice and FHWA-HRT-07-040 retroreflectivity report; modern Type III+ sheeting maintains high contrast under headlamp illumination.</p>
       <p><strong>Fourier demand model</strong> — Broadband features (edges, bodies) modeled as step-edge stimuli whose sensitivity demand rises with spatial frequency: S<sub>req</sub>(f) = sqrt(1 + (pi f theta)^2) / C. Texture features (dimple pattern) use a Gaussian bandpass model centered at the characteristic texture frequency. Theoretical framework follows Campbell &amp; Robson (1968), "Application of Fourier analysis to the visibility of gratings," and Watson &amp; Ahumada (2005), "A standard model for foveal detection of spatial contrast."</p>
     </div>
   </div>
 
-  <div class="disclaimer" style="font-size:.65rem;color:var(--t3);line-height:1.6;text-align:center;max-width:680px;margin:0 auto;opacity:0;animation:settleUp var(--settle) var(--ez) .55s forwards">This tool is for educational and informational purposes only and is not a substitute for a professional eye examination. Results may vary based on screen calibration, ambient lighting, and testing conditions. Do not use these results to make medical decisions. If you have concerns about your vision, please consult a licensed eye care professional.</div>
+  <div class="disclaimer" style="font-size:.65rem;color:var(--t3);line-height:1.6;text-align:center;max-width:680px;margin:0 auto;opacity:0;animation:settleUp var(--settle) var(--ez) .55s forwards">This tool is for educational and informational purposes only. It is not a medical device, clinical assessment, diagnosis, or substitute for a professional eye examination. All results are estimates based on a simplified model and may not reflect actual real-world visual performance. Do not use these results to make medical, safety, or driving decisions. If you have concerns about your vision, please consult a licensed eye care professional.</div>
 </div>
 
 <script>
@@ -239,8 +239,8 @@ const OBJECTS = [
             { label: 'Dimple texture', size: 0.0035, contrast: { bright: 0.15, cloudy: 0.08, overcast: 0.04, night: 0.005 }, type: 'texture' },
         ],
         descriptions: {
-            resolved: 'You can make out the dimple pattern on the ball at this distance.',
-            detected: 'You can see the ball but can\'t resolve its shape or surface details.',
+            resolved: 'Based on this curve, the dimple pattern on the ball would likely be visible at this distance.',
+            detected: 'The ball itself would likely be visible, but shape and surface details may not be resolvable.',
             invisible: 'Under these conditions, the ball would likely be very difficult to see.',
         },
     },
@@ -253,8 +253,8 @@ const OBJECTS = [
             { label: 'Dimple texture', size: 0.0035, contrast: { bright: 0.04, cloudy: 0.02, overcast: 0.01, night: 0.002 }, type: 'texture' },
         ],
         descriptions: {
-            resolved: 'You can make out the dimple pattern against the sky.',
-            detected: 'You can track the ball in flight but can\'t see surface detail.',
+            resolved: 'Based on this curve, the dimple pattern would likely be visible against the sky.',
+            detected: 'The ball in flight would likely be trackable, but surface detail may not be resolvable.',
             invisible: 'Under these conditions, the ball would likely be lost against the sky.',
         },
     },
@@ -269,8 +269,8 @@ const OBJECTS = [
             { label: 'Face',  size: 0.025, contrast: { bright: 0.20, cloudy: 0.12, overcast: 0.04, night: 0.01 }, type: 'broadband' },
         ],
         descriptions: {
-            resolved: 'You can recognize the person\'s face at this distance.',
-            detected: 'You can see someone is there, but can\'t make out facial features.',
+            resolved: 'Based on this curve, facial recognition would likely be possible at this distance.',
+            detected: 'A person would likely be detectable, but facial features may not be resolvable.',
             invisible: 'A dark-clothed pedestrian would likely be very difficult to detect here.',
         },
     },
@@ -285,9 +285,9 @@ const OBJECTS = [
             { label: 'Face',       size: 0.025, contrast: { bright: 0.20, cloudy: 0.12, overcast: 0.04, night: 0.01 }, type: 'broadband' },
         ],
         descriptions: {
-            resolved: 'You can recognize the person\'s face and see reflective details.',
-            detected: 'You can spot the hi-vis vest but can\'t make out the face.',
-            invisible: 'Even a hi-vis vest can\'t be detected at this range and lighting.',
+            resolved: 'Based on this curve, facial features and reflective details would likely be visible.',
+            detected: 'The hi-vis vest would likely be spottable, but facial features may not be resolvable.',
+            invisible: 'Even a hi-vis vest may not be detectable at this range and lighting.',
         },
         retroNote: 'The reflective strips on a hi-vis vest are retroreflective \u2014 they bounce headlight beams back toward the driver, so those strips actually become easier to see at night than in dim daylight.',
     },
@@ -302,8 +302,8 @@ const OBJECTS = [
             { label: 'Plate text',  size: 0.010, contrast: { bright: 0.88, cloudy: 0.65, overcast: 0.30, night: 0.50 }, type: 'broadband' },
         ],
         descriptions: {
-            resolved: 'You can read the license plate at this distance.',
-            detected: 'You can see the car but can\'t read its plate.',
+            resolved: 'Based on this curve, the license plate would likely be readable at this distance.',
+            detected: 'The car would likely be visible, but the plate may not be readable.',
             invisible: 'The car would likely blend into the background at this range.',
         },
     },
@@ -320,8 +320,8 @@ const OBJECTS = [
             { label: 'Letter strokes',  size: 0.081, contrast: { bright: 0.85, cloudy: 0.70, overcast: 0.55, night: 0.75 }, type: 'broadband' },
         ],
         descriptions: {
-            resolved: 'You can read the exit sign text at this distance.',
-            detected: 'You can see the green sign but can\'t read the lettering.',
+            resolved: 'Based on this curve, the exit sign text would likely be readable at this distance.',
+            detected: 'The green sign would likely be visible, but the lettering may not be readable.',
             invisible: 'The sign would likely not be visible at this range and lighting.',
         },
         retroNote: 'Highway signs use retroreflective sheeting that bounces headlight beams back toward the driver, so contrast actually improves at night compared to overcast daylight.',
@@ -337,8 +337,8 @@ const OBJECTS = [
             { label: 'Char strokes', size: 0.010, contrast: { bright: 0.88, cloudy: 0.65, overcast: 0.30, night: 0.60 }, type: 'broadband' },
         ],
         descriptions: {
-            resolved: 'You can read the plate characters at this distance.',
-            detected: 'You can see the plate but can\'t read the characters.',
+            resolved: 'Based on this curve, the plate characters would likely be readable at this distance.',
+            detected: 'The plate would likely be visible, but characters may not be readable.',
             invisible: 'The plate would likely not be detectable at this range.',
         },
         retroNote: 'License plates use a retroreflective background that lights up under headlights, so contrast actually improves at night compared to overcast daylight.',
@@ -354,8 +354,8 @@ const OBJECTS = [
             { label: 'Eye/ear', size: 0.02, contrast: { bright: 0.20, cloudy: 0.12, overcast: 0.04, night: 0.01 }, type: 'broadband' },
         ],
         descriptions: {
-            resolved: 'You can see the deer\'s eyes and ears clearly.',
-            detected: 'You can see something is there but can\'t identify details.',
+            resolved: 'Based on this curve, the deer\'s eyes and ears would likely be visible at this distance.',
+            detected: 'Something would likely be detectable, but identifying details may not be possible.',
             invisible: 'A deer would likely be very difficult to see against the roadside at this range.',
         },
     },
@@ -831,8 +831,8 @@ function updateVerdict(obj, distMeters) {
     const result = computeVerdict(obj, distMeters, csfParams);
     const statusEl = document.getElementById('verdict-status');
     statusEl.textContent = result.verdict.toUpperCase();
-    // Add estimated qualifier for patient mode
-    if (hasPatientData) statusEl.textContent = 'ESTIMATED: ' + statusEl.textContent;
+    // Always qualify verdict as estimated
+    statusEl.textContent = 'ESTIMATED: ' + statusEl.textContent;
 
     statusEl.className = 'verdict-status ' + result.verdict;
 
@@ -881,7 +881,7 @@ function updateExplanation(obj, distMeters) {
     }
 
     // Paragraph 1 — always the same structure
-    const p1 = 'The cyan curve is your contrast sensitivity\u200a\u2014\u200ahow faint a pattern your eyes can detect at each level of detail. Coarse patterns are on the left; fine detail is on the right. The three dashed lines show the minimum sensitivity your eyes <em>need</em> to pick up different parts of the ' + obj.name + ': ' + cs(result.feats[0].label, featureColors[0]) + ', ' + cs(result.feats[1].label, featureColors[1]) + ', and ' + cs(result.feats[2].label, featureColors[2]) + '. Wherever your curve sits above a demand line (the green-tinted zone), you can see that feature. Where demand rises above your curve (red zone), that detail is invisible to you. These demand lines curve upward toward the right because finer detail requires progressively more sensitivity\u200a\u2014\u200aand at some point they climb off the top of the chart entirely, meaning your eyes simply cannot access that level of detail at this distance.';
+    const p1 = 'The cyan curve represents the estimated contrast sensitivity\u200a\u2014\u200ahow faint a pattern may be detectable at each level of detail. Coarse patterns are on the left; fine detail is on the right. The three dashed lines show the estimated minimum sensitivity needed to pick up different parts of the ' + obj.name + ': ' + cs(result.feats[0].label, featureColors[0]) + ', ' + cs(result.feats[1].label, featureColors[1]) + ', and ' + cs(result.feats[2].label, featureColors[2]) + '. Where the curve sits above a demand line (green-tinted zone), that feature is estimated to be visible. Where demand rises above the curve (red zone), that detail is estimated to be beyond detection. These demand lines curve upward toward the right because finer detail requires progressively more sensitivity\u200a\u2014\u200aand at some point they climb off the top of the chart entirely, meaning that level of detail is likely not accessible at this distance. Real-world visibility depends on many factors not captured here.';
 
     // Paragraph 2 — per-feature sentences
     const sentences = result.feats.map((f, i) => {
@@ -891,26 +891,26 @@ function updateExplanation(obj, distMeters) {
 
         if (f.visible || isMarginal) {
             if (charF < fMin) {
-                return 'The ' + cLabel + ' is so large at ' + distDisplay + ' that its demand sits off the left edge of the chart\u200a\u2014\u200aeasily within your range.';
+                return 'The ' + cLabel + ' is so large at ' + distDisplay + ' that its demand sits off the left edge of the chart\u200a\u2014\u200aestimated to be easily within range.';
             }
             if (charF > fMax) {
-                return 'The ' + cLabel + ' requires finer detail than your eyes can access\u200a\u2014\u200aits demand climbs off the right side of the chart.';
+                return 'The ' + cLabel + ' would require finer detail than is estimated to be accessible\u200a\u2014\u200aits demand climbs off the right side of the chart.';
             }
             if (isMarginal && !f.visible) {
-                return 'The ' + cLabel + ' dot at ' + charF.toFixed(1) + ' cpd sits just barely above your CSF\u200a\u2014\u200aright at the edge of visibility.';
+                return 'The ' + cLabel + ' dot at ' + charF.toFixed(1) + ' cpd sits just barely above the CSF curve\u200a\u2014\u200aright at the estimated edge of visibility.';
             }
             if (isMarginal) {
-                return 'The ' + cLabel + ' dot at ' + charF.toFixed(1) + ' cpd is just barely visible\u200a\u2014\u200ayour sensitivity there only narrowly exceeds what\u2019s needed.';
+                return 'The ' + cLabel + ' dot at ' + charF.toFixed(1) + ' cpd is estimated to be just barely visible\u200a\u2014\u200asensitivity there only narrowly exceeds what\u2019s needed.';
             }
-            return 'The ' + cLabel + ' dot sits at ' + charF.toFixed(1) + ' cpd\u200a\u2014\u200ayour sensitivity there is well above what\u2019s needed, so you can see this feature clearly.';
+            return 'The ' + cLabel + ' dot sits at ' + charF.toFixed(1) + ' cpd\u200a\u2014\u200asensitivity there is estimated to be well above what\u2019s needed, so this feature would likely be visible.';
         } else {
             if (charF > fMax) {
-                return 'The ' + cLabel + ' requires finer detail than your eyes can access\u200a\u2014\u200aits demand climbs off the right side of the chart.';
+                return 'The ' + cLabel + ' would require finer detail than is estimated to be accessible\u200a\u2014\u200aits demand climbs off the right side of the chart.';
             }
             if (charF < fMin) {
-                return 'The ' + cLabel + ' sits off the left edge yet still demands more contrast than you have\u200a\u2014\u200athe lighting is too low.';
+                return 'The ' + cLabel + ' sits off the left edge yet still demands more contrast than is estimated to be available\u200a\u2014\u200athe lighting may be too low.';
             }
-            return 'The ' + cLabel + ' dot at ' + charF.toFixed(1) + ' cpd shows the demand line above your CSF\u200a\u2014\u200ayou don\u2019t have enough sensitivity for that fine detail.';
+            return 'The ' + cLabel + ' dot at ' + charF.toFixed(1) + ' cpd shows the demand line above the CSF curve\u200a\u2014\u200aestimated sensitivity may not be sufficient for that fine detail.';
         }
     });
 
@@ -918,11 +918,11 @@ function updateExplanation(obj, distMeters) {
     const vName = obj.name;
     let summary;
     if (result.verdict === 'resolved')
-        summary = 'Overall, you can fully resolve the ' + vName + ' at ' + distDisplay + ' in ' + currentLighting + ' conditions.';
+        summary = 'Overall, based on this curve, all features of the ' + vName + ' are estimated to be resolvable at ' + distDisplay + ' in ' + currentLighting + ' conditions.';
     else if (result.verdict === 'detected')
-        summary = 'You can detect the ' + vName + ' at ' + distDisplay + ', but some finer details are beyond your reach in ' + currentLighting + ' conditions.';
+        summary = 'The ' + vName + ' is estimated to be detectable at ' + distDisplay + ', but some finer details may be beyond reach in ' + currentLighting + ' conditions.';
     else
-        summary = 'At ' + distDisplay + ' in ' + currentLighting + ' conditions, the ' + vName + ' is effectively invisible to you.';
+        summary = 'At ' + distDisplay + ' in ' + currentLighting + ' conditions, the ' + vName + ' is estimated to be very difficult to detect.';
 
     el.innerHTML = '<p>' + p1 + '</p><p>' + sentences.join(' ') + ' ' + summary + '</p>';
 }
@@ -939,17 +939,17 @@ loadFromURL();
 initControls();
 
 if (hasPatientData) {
-    document.querySelector('.title').textContent = 'Explore Your Vision';
+    document.querySelector('.title').textContent = 'Explore Your CSF';
     var db = document.getElementById('patient-disclaimer-banner'); if (db) db.style.display = 'block';
     document.querySelector('.subtitle').textContent =
-        'This is your contrast sensitivity profile from the interactive demonstration. Explore how it relates to everyday visual experiences at different distances and lighting. This is for educational purposes only.';
+        'This is an estimated contrast sensitivity profile from the interactive demo. Explore how it may relate to everyday visual scenarios at different distances and lighting. For educational purposes only \u2014 not a clinical assessment.';
     document.getElementById('formula-text').textContent =
         'log\u2081\u2080(S) = ' + csfParams.g.toFixed(2) + ' \u2212 ' + csfParams.b.toFixed(2) + '\u00b7\u0394\u00b2 \u2212 ' + csfParams.d.toFixed(2) + '\u00b7\u0394\u2074';
     document.getElementById('formula-peak').textContent =
         'Peak: ' + csfParams.f.toFixed(1) + ' cpd';
 } else {
     document.querySelector('.subtitle').textContent =
-        'See how contrast sensitivity maps onto real-world objects. The curve below represents a typical observer with 20/20 vision.';
+        'Explore how a contrast sensitivity curve may relate to everyday visual scenarios. The curve below represents an estimated typical observer. For educational purposes only.';
 }
 
 scheduleRedraw();
