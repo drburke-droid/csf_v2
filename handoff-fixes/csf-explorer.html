@@ -33,8 +33,17 @@
 .csf-explorer-root .profile-info-refs{font-size:.68rem;color:var(--t3);line-height:1.5;font-style:italic}
 
 /* ─── Canvas ─── */
-.csf-explorer-root .canvas-wrap{width:100%;opacity:0;animation:settleUp var(--settle) var(--ez) .25s forwards}
+.csf-explorer-root .canvas-wrap{width:100%;opacity:0;animation:settleUp var(--settle) var(--ez) .25s forwards;position:relative}
 .csf-explorer-root #csf-canvas{width:100%;height:auto;border-radius:8px}
+
+/* ─── Reveal overlay ─── */
+.csf-explorer-root .reveal-wrap{position:relative;overflow:hidden}
+.csf-explorer-root .reveal-overlay{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(to bottom,rgba(10,10,12,0) 0%,#0a0a0c 8%,#0a0a0c 100%);transition:height .4s cubic-bezier(.22,.68,0,1.04);cursor:grab;touch-action:none;z-index:10;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:24px 20px;text-align:center;user-select:none;-webkit-user-select:none}
+.csf-explorer-root .reveal-overlay:active{cursor:grabbing}
+.csf-explorer-root .reveal-overlay .reveal-title{font-size:clamp(1rem,2.5vw,1.4rem);font-weight:500;color:var(--t1);margin-bottom:10px;line-height:1.4}
+.csf-explorer-root .reveal-overlay .reveal-body{font-size:clamp(.75rem,1.2vw,.88rem);color:var(--t2);max-width:520px;line-height:1.65;font-weight:300;margin-bottom:16px}
+.csf-explorer-root .reveal-overlay .reveal-cta{font-family:var(--m);font-size:.78rem;color:var(--a);opacity:.8;animation:revealPulse 2s ease-in-out infinite}
+@keyframes revealPulse{0%,100%{opacity:.5;transform:translateY(0)}50%{opacity:1;transform:translateY(-4px)}}
 
 /* ─── Controls ─── */
 .csf-explorer-root .controls{display:flex;flex-wrap:wrap;align-items:center;gap:14px;width:100%;opacity:0;animation:settleUp var(--settle) var(--ez) .35s forwards}
@@ -175,7 +184,14 @@ body.embed .csf-explorer-root .ref-section{padding-top:clamp(10px,2vw,16px)}
   </div>
 
   <div class="canvas-wrap">
-    <canvas id="csf-canvas"></canvas>
+    <div class="reveal-wrap" id="reveal-wrap">
+      <canvas id="csf-canvas"></canvas>
+      <div class="reveal-overlay" id="reveal-overlay">
+        <div class="reveal-title">This is all most people ask about</div>
+        <div class="reveal-body">When you get your eyes checked, the number you hear - "you're 20/20" - only tests one thing: the finest detail you can read in perfect, black-on-white contrast. But like an iceberg, there is far more happening beneath the surface.</div>
+        <div class="reveal-cta" id="reveal-cta">&uarr; Drag up to reveal what the eye chart misses &uarr;</div>
+      </div>
+    </div>
   </div>
 
   <div class="controls">
@@ -899,18 +915,28 @@ function drawAll() {
     ctx.restore(); // end clip
 
     // ── X-Axis ──
+    // X-axis: Snellen acuity labels (derived from cpd: Snellen denom = 600/cpd)
+    var snellenMarks = [
+        { cpd: 3,  label: '20/200' },
+        { cpd: 6,  label: '20/100' },
+        { cpd: 10, label: '20/60' },
+        { cpd: 15, label: '20/40' },
+        { cpd: 20, label: '20/30' },
+        { cpd: 30, label: '20/20' },
+        { cpd: 40, label: '20/15' }
+    ];
     ctx.fillStyle = 'rgba(255,255,255,0.65)';
-    ctx.font = '500 12px "JetBrains Mono", monospace';
+    ctx.font = '500 11px "JetBrains Mono", monospace';
     ctx.textAlign = 'center';
-    freqs.forEach(function(f) {
-        var x = tX(Math.log10(f));
+    snellenMarks.forEach(function(m) {
+        var x = tX(Math.log10(m.cpd));
         if (x >= pad.left && x <= pad.left + pW)
-            ctx.fillText(String(f), x, pad.top + pH + 18);
+            ctx.fillText(m.label, x, pad.top + pH + 18);
     });
     // X-axis title
     ctx.fillStyle = 'rgba(255,255,255,0.70)';
     ctx.font = '600 12px "DM Sans", sans-serif';
-    ctx.fillText('Detail', pad.left + pW / 2, pad.top + pH + 36);
+    ctx.fillText('Snellen Acuity', pad.left + pW / 2, pad.top + pH + 36);
     // X-axis range labels
     ctx.font = '500 10px "DM Sans", sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.45)';
@@ -1182,6 +1208,77 @@ function updateExplanation(obj, distMeters) {
 // ── Embed detection ──
 var sp = new URLSearchParams(location.search);
 if (sp.has('embed')) document.body.classList.add('embed');
+
+// ── Reveal overlay (iceberg) ──
+(function() {
+    var overlay = document.getElementById('reveal-overlay');
+    var wrap = document.getElementById('reveal-wrap');
+    if (!overlay || !wrap) return;
+
+    var revealed = false;
+    var overlayPct = 82; // starts covering 82% of the canvas (shows bottom ~18% = x-axis + curve tips)
+
+    function setOverlay(pct) {
+        overlayPct = Math.max(0, Math.min(95, pct));
+        overlay.style.height = overlayPct + '%';
+        if (overlayPct <= 5) {
+            revealed = true;
+            overlay.style.display = 'none';
+        }
+    }
+
+    setOverlay(overlayPct);
+
+    var dragging = false;
+    var startY = 0;
+    var startPct = 0;
+
+    overlay.addEventListener('mousedown', function(e) {
+        dragging = true; startY = e.clientY; startPct = overlayPct;
+        overlay.style.transition = 'none';
+        e.preventDefault();
+    });
+    window.addEventListener('mousemove', function(e) {
+        if (!dragging) return;
+        var dy = startY - e.clientY; // positive = dragging up
+        var canvasH = wrap.getBoundingClientRect().height;
+        var deltaPct = (dy / canvasH) * 100;
+        setOverlay(startPct - deltaPct);
+    });
+    window.addEventListener('mouseup', function() {
+        if (!dragging) return;
+        dragging = false;
+        overlay.style.transition = '';
+        if (overlayPct < 30) setOverlay(0); // snap fully open
+    });
+
+    overlay.addEventListener('touchstart', function(e) {
+        dragging = true; startY = e.touches[0].clientY; startPct = overlayPct;
+        overlay.style.transition = 'none';
+        e.preventDefault();
+    }, { passive: false });
+    window.addEventListener('touchmove', function(e) {
+        if (!dragging) return;
+        var dy = startY - e.touches[0].clientY;
+        var canvasH = wrap.getBoundingClientRect().height;
+        var deltaPct = (dy / canvasH) * 100;
+        setOverlay(startPct - deltaPct);
+    }, { passive: true });
+    window.addEventListener('touchend', function() {
+        if (!dragging) return;
+        dragging = false;
+        overlay.style.transition = '';
+        if (overlayPct < 30) setOverlay(0);
+    });
+
+    // Also allow click to reveal
+    overlay.addEventListener('click', function() {
+        if (!dragging) {
+            overlay.style.transition = 'height .8s cubic-bezier(.22,.68,0,1.04)';
+            setOverlay(0);
+        }
+    });
+})();
 
 // ── Init ──
 initControls();
