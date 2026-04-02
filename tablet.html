@@ -40,7 +40,8 @@ body{background:var(--c);color:var(--t1);font-family:var(--f);-webkit-font-smoot
 .db[data-p="r"]{grid-column:3;grid-row:2}.db[data-p="b"]{grid-column:2;grid-row:3}
 .db[data-p="c"]{grid-column:2;grid-row:2;pointer-events:none;opacity:.08;font-size:.5rem;color:var(--t3)}
 
-.gabor-btn{flex-direction:column;gap:3px;padding:3px}
+.gabor-btn{flex-direction:column;gap:3px;padding:3px;background:none;border:none;border-radius:0}
+.gabor-btn:active{background:none;border:none;transform:scale(.92)}
 .gbr-ico{width:clamp(64px,16vw,110px);height:clamp(64px,16vw,110px);flex-shrink:0}
 .gbr-lbl{font-family:var(--m);font-size:clamp(.55rem,1.5vw,.75rem);color:var(--t2);font-weight:400}
 body.surface .gbr-ico{width:clamp(80px,18vw,130px);height:clamp(80px,18vw,130px)}
@@ -135,23 +136,23 @@ body.surface .prompt{font-size:.6rem;position:relative;margin-bottom:8px}
 <div class="hdr"><span class="brand">Manifold<span class="patient-badge" id="patient-badge" style="display:none"></span></span><div class="gear" onclick="toggleSettings()">⚙</div></div>
 
 <div class="tabs" id="tabs">
-<button class="tab on" data-m="sloan" onclick="setMode('sloan')">Sloan</button>
+<button class="tab" data-m="sloan" onclick="setMode('sloan')">Sloan</button>
 <button class="tab" data-m="tumblingE" onclick="setMode('tumblingE')">Tumbling E</button>
-<button class="tab" data-m="gabor" onclick="setMode('gabor')">Gabor</button>
+<button class="tab on" data-m="gabor" onclick="setMode('gabor')">Gabor</button>
 </div>
 
 <div class="prog"><div class="ring"><svg viewBox="0 0 48 48"><circle class="bg" cx="24" cy="24" r="21"/><circle class="fg" id="rfg" cx="24" cy="24" r="21"/></svg><div class="num" id="rnum">0</div></div></div>
 
 <div class="resp" id="resp">
 <div class="prompt" id="prompt">Tap any response to begin</div>
-<div class="lpad" id="pad-s">
+<div class="lpad hid" id="pad-s">
 <button class="lb" onclick="send('c')">C</button><button class="lb" onclick="send('d')">D</button>
 <button class="lb" onclick="send('h')">H</button><button class="lb" onclick="send('k')">K</button>
 <button class="lb" onclick="send('n')">N</button><button class="lb" onclick="send('o')">O</button>
 <button class="lb" onclick="send('r')">R</button><button class="lb" onclick="send('s')">S</button>
 <button class="lb" onclick="send('v')">V</button><button class="lb" onclick="send('z')">Z</button>
 </div>
-<div class="dpad hid" id="pad-d">
+<div class="dpad" id="pad-d">
 <button class="db gabor-btn" data-p="t" onclick="send('up')"><svg class="gbr-ico" viewBox="0 0 60 60"><defs><clipPath id="gc"><circle cx="30" cy="30" r="28"/></clipPath></defs><circle cx="30" cy="30" r="28" fill="#222"/><g clip-path="url(#gc)"><rect x="6" y="0" width="4" height="60" fill="#aaa"/><rect x="14" y="0" width="4" height="60" fill="#ddd"/><rect x="22" y="0" width="4" height="60" fill="#fff"/><rect x="30" y="0" width="4" height="60" fill="#fff"/><rect x="38" y="0" width="4" height="60" fill="#ddd"/><rect x="46" y="0" width="4" height="60" fill="#aaa"/></g><circle cx="30" cy="30" r="28" fill="none" stroke="#444" stroke-width="1"/></svg><span class="gbr-lbl">12:00</span></button>
 <button class="db gabor-btn" data-p="r" onclick="send('upright')"><svg class="gbr-ico" viewBox="0 0 60 60"><defs><clipPath id="gc2"><circle cx="30" cy="30" r="28"/></clipPath></defs><circle cx="30" cy="30" r="28" fill="#222"/><g clip-path="url(#gc2)" transform="rotate(45,30,30)"><rect x="6" y="0" width="4" height="60" fill="#aaa"/><rect x="14" y="0" width="4" height="60" fill="#ddd"/><rect x="22" y="0" width="4" height="60" fill="#fff"/><rect x="30" y="0" width="4" height="60" fill="#fff"/><rect x="38" y="0" width="4" height="60" fill="#ddd"/><rect x="46" y="0" width="4" height="60" fill="#aaa"/></g><circle cx="30" cy="30" r="28" fill="none" stroke="#444" stroke-width="1"/></svg><span class="gbr-lbl">1:30</span></button>
 <button class="db gabor-btn" data-p="l" onclick="send('right')"><svg class="gbr-ico" viewBox="0 0 60 60"><defs><clipPath id="gc3"><circle cx="30" cy="30" r="28"/></clipPath></defs><circle cx="30" cy="30" r="28" fill="#222"/><g clip-path="url(#gc3)" transform="rotate(90,30,30)"><rect x="6" y="0" width="4" height="60" fill="#aaa"/><rect x="14" y="0" width="4" height="60" fill="#ddd"/><rect x="22" y="0" width="4" height="60" fill="#fff"/><rect x="30" y="0" width="4" height="60" fill="#fff"/><rect x="38" y="0" width="4" height="60" fill="#ddd"/><rect x="46" y="0" width="4" height="60" fill="#aaa"/></g><circle cx="30" cy="30" r="28" fill="none" stroke="#444" stroke-width="1"/></svg><span class="gbr-lbl">3:00</span></button>
@@ -179,7 +180,7 @@ body.surface .prompt{font-size:.6rem;position:relative;margin-bottom:8px}
 
 <div class="sp" id="sp">
 <div class="sh"><span class="st">Settings</span><button class="sc2" onclick="toggleSettings()">Done</button></div>
-<div class="sr"><span class="sl">Mode</span><span class="sv" id="sm">Sloan</span></div>
+<div class="sr"><span class="sl">Mode</span><span class="sv" id="sm">Gabor</span></div>
 <div class="sr"><span class="sl">Patient</span><span class="sv" id="sp-patient">—</span></div>
 <div class="sr"><span class="sl">Trials</span><span class="sv">30–80 (adaptive)</span></div>
 <div class="sr"><span class="sl">Calibration</span><span class="sv" id="scs">—</span></div>
@@ -203,7 +204,7 @@ const urlParams=new URLSearchParams(location.search);
 const laneID=urlParams.get('id');
 const appMode=urlParams.get('mode')==='patient'?'patient':'clinic';
 const isSurface=urlParams.has('remote')&&urlParams.get('remote')==='surface';
-let conn=null,isConn=false,cto=null,curMode='sloan',stream=null,curPatient=null;
+let conn=null,isConn=false,cto=null,curMode='gabor',stream=null,curPatient=null;
 
 // Surface remote mode: larger buttons, no mode tabs, auto-reconnect
 if(isSurface){document.body.classList.add('surface')}
