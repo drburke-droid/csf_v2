@@ -66,7 +66,7 @@ const cal = getCalibrationData();
 
 if (isCalibrationStale(CAL_STALE_MS)) {
     const w = document.getElementById('stale-cal-warning');
-    if (w) w.style.display = 'block';
+    if (w) { w.style.display = 'block'; w.onclick = () => window.location.href = withMode('calibration.html'); }
 }
 
 if (cal.isMirror) {

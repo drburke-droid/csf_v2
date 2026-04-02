@@ -412,7 +412,14 @@
     // Mode detection
     const calParams = new URLSearchParams(window.location.search);
     const calMode = calParams.get('mode') === 'patient' ? 'patient' : 'clinic';
-    const modeSuffix = calMode === 'patient' ? '?mode=patient' : '';
+    const calLane = calParams.get('lane') || '';
+    // Build suffix that preserves both mode and lane params
+    const modeSuffix = (function() {
+        var parts = [];
+        if (calMode === 'patient') parts.push('mode=patient');
+        if (calLane) parts.push('lane=' + calLane);
+        return parts.length ? '?' + parts.join('&') : '';
+    })();
 
     const gammaSlider = document.getElementById('gamma-slider');
     const sizeSlider  = document.getElementById('size-slider');

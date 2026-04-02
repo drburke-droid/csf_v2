@@ -41,11 +41,15 @@ export function buildExplorerURL(csfParams) {
 /** Calibration stale threshold: infinite for clinic, 24hr for patient */
 export const CAL_STALE_MS = APP_MODE === 'clinic' ? Infinity : 24 * 60 * 60 * 1000;
 
-/** Preserve mode param when navigating between pages */
+/** Preserve mode and lane params when navigating between pages */
 export function withMode(href) {
-    if (APP_MODE === 'patient') {
+    const parts = [];
+    if (APP_MODE === 'patient') parts.push('mode=patient');
+    const lane = params.get('lane');
+    if (lane) parts.push('lane=' + lane);
+    if (parts.length) {
         const sep = href.includes('?') ? '&' : '?';
-        return href + sep + 'mode=patient';
+        return href + sep + parts.join('&');
     }
     return href;
 }
