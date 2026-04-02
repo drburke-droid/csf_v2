@@ -38,11 +38,11 @@
 
 /* ─── Reveal overlay ─── */
 .csf-explorer-root .reveal-wrap{position:relative;overflow:hidden}
-.csf-explorer-root .reveal-overlay{position:absolute;left:0;right:0;top:0;background:linear-gradient(to bottom,#0a0a0c 0%,#0a0a0c 88%,rgba(10,10,12,0) 100%);transition:height .4s cubic-bezier(.22,.68,0,1.04);cursor:grab;touch-action:none;z-index:10;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:24px 20px 32px;text-align:center;user-select:none;-webkit-user-select:none;overflow:hidden}
+.csf-explorer-root .reveal-overlay{position:absolute;left:4px;right:4px;top:4px;background:#0e0e12;border:2px solid rgba(255,255,255,.45);border-radius:14px;box-shadow:0 4px 30px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.08) inset;transition:height .4s cubic-bezier(.22,.68,0,1.04);cursor:grab;touch-action:none;z-index:10;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:28px 28px 12px;text-align:justify;user-select:none;-webkit-user-select:none;overflow:hidden}
 .csf-explorer-root .reveal-overlay:active{cursor:grabbing}
-.csf-explorer-root .reveal-overlay .reveal-content{transition:opacity .3s}
-.csf-explorer-root .reveal-overlay .reveal-title{font-size:clamp(1rem,2.5vw,1.4rem);font-weight:500;color:var(--t1);margin-bottom:10px;line-height:1.4}
-.csf-explorer-root .reveal-overlay .reveal-body{font-size:clamp(.75rem,1.2vw,.88rem);color:var(--t2);max-width:520px;line-height:1.65;font-weight:300;margin-bottom:16px}
+.csf-explorer-root .reveal-overlay .reveal-content{transition:opacity .3s;display:flex;flex-direction:column;align-items:center}
+.csf-explorer-root .reveal-overlay .reveal-title{font-size:clamp(1.2rem,3vw,1.7rem);font-weight:600;color:#fff;margin-bottom:14px;line-height:1.35;text-align:center;letter-spacing:-.01em}
+.csf-explorer-root .reveal-overlay .reveal-body{font-size:clamp(.85rem,1.4vw,1rem);color:rgba(255,255,255,.75);max-width:560px;line-height:1.7;font-weight:400;margin-bottom:18px}
 .csf-explorer-root .reveal-handle{display:flex;align-items:center;justify-content:center;gap:8px;padding:6px 20px;cursor:grab;white-space:nowrap}
 .csf-explorer-root .reveal-handle:active{cursor:grabbing}
 .csf-explorer-root .reveal-handle .handle-bar{width:40px;height:4px;border-radius:2px;background:rgba(255,255,255,.2)}
