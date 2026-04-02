@@ -40,6 +40,13 @@ body{background:var(--c);color:var(--t1);font-family:var(--f);-webkit-font-smoot
 .db[data-p="r"]{grid-column:3;grid-row:2}.db[data-p="b"]{grid-column:2;grid-row:3}
 .db[data-p="c"]{grid-column:2;grid-row:2;pointer-events:none;opacity:.08;font-size:.5rem;color:var(--t3)}
 
+.gabor-btn{flex-direction:column;gap:4px;padding:6px}
+.gbr-ico{width:clamp(36px,8vw,56px);height:clamp(36px,8vw,56px);flex-shrink:0}
+.gbr-lbl{font-family:var(--m);font-size:clamp(.55rem,1.5vw,.75rem);color:var(--t2);font-weight:400}
+body.surface .gbr-ico{width:clamp(44px,10vw,70px);height:clamp(44px,10vw,70px)}
+body.surface .gbr-lbl{font-size:clamp(.6rem,1.8vw,.85rem)}
+body.surface .gabor-btn{gap:5px;padding:8px}
+
 .fl{animation:fl .3s ease-out}
 @keyframes fl{0%{background:var(--as);border-color:var(--a);color:var(--a);box-shadow:0 0 14px var(--ag)}100%{background:var(--s);border-color:var(--b);color:var(--t2);box-shadow:none}}
 
@@ -145,11 +152,11 @@ body.surface .prompt{font-size:.6rem;position:relative;margin-bottom:8px}
 <button class="lb" onclick="send('v')">V</button><button class="lb" onclick="send('z')">Z</button>
 </div>
 <div class="dpad hid" id="pad-d">
-<button class="db" data-p="t" onclick="send('up')">12:00</button>
-<button class="db" data-p="r" onclick="send('upright')">1:30</button>
-<button class="db" data-p="c" id="btn-none" style="pointer-events:none;opacity:.08;font-size:.5rem;color:var(--t3)">+</button>
-<button class="db" data-p="l" onclick="send('right')">3:00</button>
-<button class="db" data-p="b" onclick="send('upleft')">4:30</button>
+<button class="db gabor-btn" data-p="t" onclick="send('up')"><svg class="gbr-ico" viewBox="0 0 60 60"><defs><clipPath id="gc"><circle cx="30" cy="30" r="28"/></clipPath></defs><circle cx="30" cy="30" r="28" fill="#222"/><g clip-path="url(#gc)"><rect x="6" y="0" width="4" height="60" fill="#aaa"/><rect x="14" y="0" width="4" height="60" fill="#ddd"/><rect x="22" y="0" width="4" height="60" fill="#fff"/><rect x="30" y="0" width="4" height="60" fill="#fff"/><rect x="38" y="0" width="4" height="60" fill="#ddd"/><rect x="46" y="0" width="4" height="60" fill="#aaa"/></g><circle cx="30" cy="30" r="28" fill="none" stroke="#444" stroke-width="1"/></svg><span class="gbr-lbl">12:00</span></button>
+<button class="db gabor-btn" data-p="r" onclick="send('upright')"><svg class="gbr-ico" viewBox="0 0 60 60"><defs><clipPath id="gc2"><circle cx="30" cy="30" r="28"/></clipPath></defs><circle cx="30" cy="30" r="28" fill="#222"/><g clip-path="url(#gc2)" transform="rotate(45,30,30)"><rect x="6" y="0" width="4" height="60" fill="#aaa"/><rect x="14" y="0" width="4" height="60" fill="#ddd"/><rect x="22" y="0" width="4" height="60" fill="#fff"/><rect x="30" y="0" width="4" height="60" fill="#fff"/><rect x="38" y="0" width="4" height="60" fill="#ddd"/><rect x="46" y="0" width="4" height="60" fill="#aaa"/></g><circle cx="30" cy="30" r="28" fill="none" stroke="#444" stroke-width="1"/></svg><span class="gbr-lbl">1:30</span></button>
+<button class="db gabor-btn" data-p="l" onclick="send('right')"><svg class="gbr-ico" viewBox="0 0 60 60"><defs><clipPath id="gc3"><circle cx="30" cy="30" r="28"/></clipPath></defs><circle cx="30" cy="30" r="28" fill="#222"/><g clip-path="url(#gc3)" transform="rotate(90,30,30)"><rect x="6" y="0" width="4" height="60" fill="#aaa"/><rect x="14" y="0" width="4" height="60" fill="#ddd"/><rect x="22" y="0" width="4" height="60" fill="#fff"/><rect x="30" y="0" width="4" height="60" fill="#fff"/><rect x="38" y="0" width="4" height="60" fill="#ddd"/><rect x="46" y="0" width="4" height="60" fill="#aaa"/></g><circle cx="30" cy="30" r="28" fill="none" stroke="#444" stroke-width="1"/></svg><span class="gbr-lbl">3:00</span></button>
+<button class="db gabor-btn" data-p="b" onclick="send('upleft')"><svg class="gbr-ico" viewBox="0 0 60 60"><defs><clipPath id="gc4"><circle cx="30" cy="30" r="28"/></clipPath></defs><circle cx="30" cy="30" r="28" fill="#222"/><g clip-path="url(#gc4)" transform="rotate(135,30,30)"><rect x="6" y="0" width="4" height="60" fill="#aaa"/><rect x="14" y="0" width="4" height="60" fill="#ddd"/><rect x="22" y="0" width="4" height="60" fill="#fff"/><rect x="30" y="0" width="4" height="60" fill="#fff"/><rect x="38" y="0" width="4" height="60" fill="#ddd"/><rect x="46" y="0" width="4" height="60" fill="#aaa"/></g><circle cx="30" cy="30" r="28" fill="none" stroke="#444" stroke-width="1"/></svg><span class="gbr-lbl">4:30</span></button>
+<button class="db gabor-btn" data-p="c" id="btn-none" onclick="send('none')"><svg class="gbr-ico" viewBox="0 0 60 60"><circle cx="30" cy="30" r="28" fill="#1a1a1a" stroke="#333" stroke-width="1"/><line x1="16" y1="16" x2="44" y2="44" stroke="#555" stroke-width="2.5"/><line x1="44" y1="16" x2="16" y2="44" stroke="#555" stroke-width="2.5"/></svg><span class="gbr-lbl">Can't see</span></button>
 </div>
 </div>
 
@@ -268,14 +275,16 @@ function send(v){
     conn.send({type:'input',value:v});
     if(navigator.vibrate)navigator.vibrate(25);
     document.getElementById('prompt').classList.add('hid');
-    // Flash
-    const all=[...document.querySelectorAll('.lb,.db')];
-    const map={'↑':'up','↓':'down','←':'left','→':'right'};
-    all.forEach(b=>{
-        const bt=b.textContent.trim();
-        const bv=map[bt]||bt.toLowerCase();
-        if(bv===v){b.classList.remove('fl');void b.offsetWidth;b.classList.add('fl')}
-    });
+    // Flash the pressed button
+    var keyToPos={up:'t',upright:'r',right:'l',upleft:'b',none:'c'};
+    var dp=keyToPos[v];
+    if(dp){
+        var btn=document.querySelector('#pad-d .db[data-p="'+dp+'"]');
+        if(btn){btn.classList.remove('fl');void btn.offsetWidth;btn.classList.add('fl')}
+    }
+    // Sloan flash
+    var all=[...document.querySelectorAll('.lb')];
+    all.forEach(function(b){if(b.textContent.trim().toLowerCase()===v){b.classList.remove('fl');void b.offsetWidth;b.classList.add('fl')}});
 }
 
 function setMode(m){
@@ -286,32 +295,35 @@ function setMode(m){
     if(conn&&isConn)conn.send({type:'setMode',mode:m});
 }
 
+// Store original gabor button HTML for restoring after mode switch
+var gaborBtnHTML={};
+document.querySelectorAll('#pad-d .db[data-p]').forEach(function(b){gaborBtnHTML[b.dataset.p]=b.innerHTML;});
+
 function switchPad(m){
-    const isDir=m==='gabor'||m==='tumblingE';
+    var isDir=m==='gabor'||m==='tumblingE';
     document.getElementById('pad-s').classList.toggle('hid',isDir);
     document.getElementById('pad-d').classList.toggle('hid',!isDir);
-    const dbtns=document.querySelectorAll('.db[data-p]');
-    const noneBtn=document.getElementById('btn-none');
-    dbtns.forEach(b=>{
+    var dbtns=document.querySelectorAll('#pad-d .db[data-p]');
+    dbtns.forEach(function(b){
         if(m==='gabor'){
-            // Gabor: 4 clock-position orientations + "Can't see"
-            if(b.dataset.p==='t'){b.textContent='12:00';b.onclick=()=>send('up');b.style.fontSize='0.8rem'}
-            if(b.dataset.p==='r'){b.textContent='1:30';b.onclick=()=>send('upright');b.style.fontSize='0.8rem'}
-            if(b.dataset.p==='b'){b.textContent='4:30';b.onclick=()=>send('upleft');b.style.fontSize='0.8rem'}
-            if(b.dataset.p==='l'){b.textContent='3:00';b.onclick=()=>send('right');b.style.fontSize='0.8rem'}
-            if(b.dataset.p==='c'){
-                b.textContent='Can\'t\nsee';b.onclick=()=>send('none');
-                b.style.pointerEvents='auto';b.style.opacity='1';
-                b.style.fontSize='0.6rem';b.style.color='var(--t2)';b.style.whiteSpace='pre-line';
-            }
+            // Restore SVG gabor buttons
+            b.innerHTML=gaborBtnHTML[b.dataset.p]||b.innerHTML;
+            b.classList.add('gabor-btn');
+            b.style.pointerEvents='auto';b.style.opacity='1';b.style.fontSize='';b.style.color='';b.style.whiteSpace='';
+            if(b.dataset.p==='t'){b.onclick=function(){send('up')}}
+            if(b.dataset.p==='r'){b.onclick=function(){send('upright')}}
+            if(b.dataset.p==='l'){b.onclick=function(){send('right')}}
+            if(b.dataset.p==='b'){b.onclick=function(){send('upleft')}}
+            if(b.dataset.p==='c'){b.onclick=function(){send('none')}}
         } else {
             // Tumbling E: 4 cardinal directions, center disabled
-            if(b.dataset.p==='t'){b.textContent='↑';b.onclick=()=>send('up')}
-            if(b.dataset.p==='r'){b.textContent='→';b.onclick=()=>send('right')}
-            if(b.dataset.p==='b'){b.textContent='↓';b.onclick=()=>send('down');b.style.transform=''}
-            if(b.dataset.p==='l'){b.textContent='←';b.onclick=()=>send('left')}
+            b.classList.remove('gabor-btn');
+            if(b.dataset.p==='t'){b.innerHTML='↑';b.onclick=function(){send('up')};b.style.fontSize=''}
+            if(b.dataset.p==='r'){b.innerHTML='→';b.onclick=function(){send('right')};b.style.fontSize=''}
+            if(b.dataset.p==='b'){b.innerHTML='↓';b.onclick=function(){send('down')};b.style.fontSize=''}
+            if(b.dataset.p==='l'){b.innerHTML='←';b.onclick=function(){send('left')};b.style.fontSize=''}
             if(b.dataset.p==='c'){
-                b.textContent='+';b.onclick=null;
+                b.innerHTML='+';b.onclick=null;
                 b.style.pointerEvents='none';b.style.opacity='.08';
                 b.style.fontSize='.5rem';b.style.color='var(--t3)';
             }
