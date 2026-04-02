@@ -119,7 +119,7 @@
   </div>
   <div class="cd hidden" id="eyeCard">
     <div class="ch"><div class="ct"><span class="dot" style="background:#e06050"></span>On Your Retina</div><div class="csub">Image inverted by the lens — analysis happens here</div></div>
-    <div class="cb"><canvas id="eyeCanvas" style="width:100%;aspect-ratio:2.5/1;"></canvas></div>
+    <div class="cb"><canvas id="eyeCanvas" style="width:100%;height:clamp(200px,40vw,320px);"></canvas></div>
   </div>
   <div class="ab"><button class="ba" id="analyzeBtn" onclick="runDecomposition()">Analyze Image</button><div class="cr" id="cpdReadout">—</div></div>
   <div class="sa" id="sieveArea"></div>
@@ -318,8 +318,12 @@ function drawEyeDiagram(){
   const rulerH=28; // space reserved for ruler at bottom
   const drawH=h-rulerH;
   const retAspect=retinaImg.width/retinaImg.height;
-  const retH=drawH*0.92;
-  const retW=retH*retAspect;
+  // Cap retina image so it never exceeds 45% of canvas width
+  const retMaxW=w*0.45;
+  const retHFromHeight=drawH*0.92;
+  const retWFromHeight=retHFromHeight*retAspect;
+  const retW=Math.min(retWFromHeight, retMaxW);
+  const retH=retW/retAspect;
   const retX=w-retW-8, retY=(drawH-retH)/2;
   const globeMidY=retY+retH/2;
 
