@@ -16,7 +16,8 @@ import { drawCSFPlot }   from './csf-plot.js';
 import { initSync }      from './peer-sync.js';
 import { initKeyboard }  from './keyboard.js';
 import { computeResult, buildSessionRecord } from './results.js';
-import { saveSession, getLatestSession } from './db.js';
+import { saveSession, getLatestSession, getSessionsByPatient } from './db.js';
+import { exportSessionJSON, exportSessionCSV } from './export.js';
 import { isPatientMode, isClinicMode, buildExplorerURL, withMode, CAL_STALE_MS } from './config.js';
 
 
@@ -24,7 +25,8 @@ import { isPatientMode, isClinicMode, buildExplorerURL, withMode, CAL_STALE_MS }
 // Configuration
 // ═════════════════════════════════════════════════════════════════════════════
 
-const MAX_TRIALS  = 50;
+const MIN_TRIALS  = 30;
+const MAX_TRIALS  = 80;
 const DEBOUNCE_MS = 250;
 
 // Default mode: gabor for patient mode, sloan for clinic
@@ -311,7 +313,12 @@ function handleInput(value) {
         sync.sendProgress(engine.trialCount, MAX_TRIALS);
     }
 
+    // Adaptive stopping: converge between MIN_TRIALS and MAX_TRIALS
     if (engine.trialCount >= MAX_TRIALS) {
+        finish();
+        return;
+    }
+    if (engine.trialCount >= MIN_TRIALS && engine.isConverged()) {
         finish();
         return;
     }
@@ -451,10 +458,23 @@ function nextTrial() {
 
 function updateProgress(trial) {
     const el = document.getElementById('live-progress');
-    if (el) el.textContent = `${trial} / ${MAX_TRIALS}`;
+    if (el) {
+        if (trial < MIN_TRIALS) {
+            el.textContent = `${trial} / ${MIN_TRIALS}+`;
+        } else {
+            const converged = engine && engine.isConverged();
+            el.textContent = converged ? `${trial} (converged)` : `${trial} / ${MAX_TRIALS}`;
+        }
+    }
 
     const fill = document.getElementById('progress-fill');
-    if (fill) fill.style.width = `${(trial / MAX_TRIALS) * 100}%`;
+    if (fill) {
+        // Fill to MIN_TRIALS first, then continue to MAX
+        const pct = trial < MIN_TRIALS
+            ? (trial / MIN_TRIALS) * 100
+            : 100;
+        fill.style.width = `${pct}%`;
+    }
 }
 
 
@@ -479,11 +499,19 @@ function finish() {
     const explorerURL = buildExplorerURL(result.params);
 
     // Save to database (clinic mode with patient ID)
+    let lastSavedRecord = null;
     if (isClinicMode() && patientId) {
         try {
-            const record = buildSessionRecord(engine, result, patientId, currentModeId);
-            saveSession(record).then(id => {
+            lastSavedRecord = buildSessionRecord(engine, result, patientId, currentModeId);
+            saveSession(lastSavedRecord).then(id => {
                 console.log('[DB] Session saved, id:', id);
+                // Wire up export buttons
+                const jsonBtn = document.getElementById('export-json-btn');
+                const csvBtn = document.getElementById('export-csv-btn');
+                if (jsonBtn) jsonBtn.onclick = () => exportSessionJSON(lastSavedRecord);
+                if (csvBtn) csvBtn.onclick = () => exportSessionCSV(lastSavedRecord);
+                const exportRow = document.getElementById('export-row');
+                if (exportRow) exportRow.style.display = 'flex';
             }).catch(err => {
                 console.warn('[DB] Save failed:', err);
             });
@@ -557,6 +585,16 @@ function finishClinic(result, explorerURL) {
     setEl('final-auc', result.aulcsf.toFixed(2));
     setEl('final-rank', result.rank);
     setEl('final-detail', result.detail);
+
+    // Show convergence info
+    if (result.convergence) {
+        const conv = result.convergence;
+        const convEl = document.getElementById('convergence-info');
+        if (convEl) {
+            convEl.textContent = `${conv.trialCount} trials · ${conv.isConverged ? 'Converged' : 'Max reached'} · Entropy: ${conv.entropy.toFixed(1)} bits`;
+            convEl.style.display = 'block';
+        }
+    }
 
     // Show notch probability if clinically significant
     if (result.notchProb > 0.5) {

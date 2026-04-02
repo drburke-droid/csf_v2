@@ -39,7 +39,9 @@ export function computeResult(engine) {
 
     const notchProb = engine.getNotchProbability();
 
-    return { aulcsf, rank, detail, params, notchProb };
+    const convergence = engine.getConvergenceInfo ? engine.getConvergenceInfo() : null;
+
+    return { aulcsf, rank, detail, params, notchProb, convergence };
 }
 
 /**

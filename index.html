@@ -487,6 +487,7 @@
                 <div class="rank-label" id="final-rank">—</div>
                 <div class="result-detail" id="final-detail"></div>
                 <div id="notch-flag"></div>
+                <div id="convergence-info" style="display:none;font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:rgba(255,255,255,0.35);margin-top:6px;"></div>
             </div>
 
             <!-- ═══ Patient Mode Results ═══ -->
@@ -515,7 +516,11 @@
 
             <!-- ═══ Clinic Mode Actions ═══ -->
             <div class="clinic-only">
-                <button class="restart-btn" onclick="location.reload()" style="margin-top:24px;">Test Again</button>
+                <div id="export-row" style="display:none;gap:10px;margin-top:16px;justify-content:center;flex-wrap:wrap;">
+                    <button id="export-json-btn" style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;padding:8px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:rgba(255,255,255,0.5);cursor:pointer;">Export JSON</button>
+                    <button id="export-csv-btn" style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;padding:8px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:rgba(255,255,255,0.5);cursor:pointer;">Export CSV</button>
+                </div>
+                <button class="restart-btn" onclick="location.reload()" style="margin-top:16px;">Test Again</button>
             </div>
 
         </div>

@@ -261,6 +261,10 @@ export class QCSFEngine {
 
         this.trialCount++;
         this.history.push({ trial: this.trialCount, stimIndex, correct });
+
+        // Track entropy for convergence monitoring
+        if (!this._entropyHistory) this._entropyHistory = [];
+        this._entropyHistory.push(this.getPosteriorEntropy());
     }
 
     // ── Estimation ───────────────────────────────────────────────────────────
@@ -404,6 +408,49 @@ export class QCSFEngine {
             }
         }
         return area;
+    }
+
+    // ── Convergence Monitoring ────────────────────────────────────────────────
+
+    /** Shannon entropy of the current posterior (bits). */
+    getPosteriorEntropy() {
+        let H = 0;
+        for (let h = 0; h < this.nParams; h++) {
+            const p = this.prior[h];
+            if (p > 1e-20) H -= p * Math.log2(p);
+        }
+        return H;
+    }
+
+    /**
+     * Check if the posterior has converged.
+     * @param {number} thresholdBits  – entropy must be below this (default 5.5)
+     * @param {number} deltaThreshold – entropy change per trial must be below this (default 0.05)
+     * @param {number} windowSize     – number of recent trials to check delta over (default 5)
+     * @returns {boolean}
+     */
+    isConverged(thresholdBits = 5.5, deltaThreshold = 0.05, windowSize = 5) {
+        if (!this._entropyHistory || this._entropyHistory.length < windowSize) return false;
+        const H = this._entropyHistory;
+        const current = H[H.length - 1];
+        if (current > thresholdBits) return false;
+        // Average entropy change per trial over the window
+        const older = H[H.length - windowSize];
+        const delta = Math.abs(older - current) / windowSize;
+        return delta < deltaThreshold;
+    }
+
+    /** Get convergence diagnostic info. */
+    getConvergenceInfo() {
+        const entropy = this._entropyHistory && this._entropyHistory.length > 0
+            ? this._entropyHistory[this._entropyHistory.length - 1]
+            : this.getPosteriorEntropy();
+        return {
+            entropy,
+            entropyHistory: this._entropyHistory ? [...this._entropyHistory] : [],
+            isConverged: this.isConverged(),
+            trialCount: this.trialCount
+        };
     }
 
     /** Generate parametric curve {freq, logS} points for plotting. */
