@@ -37,17 +37,16 @@ let currentModeId = 'gabor';
 // Patient-mode UI setup
 // ═════════════════════════════════════════════════════════════════════════════
 
+// Patch all calibration links to preserve mode and lane params
+const calGuardBtn = document.querySelector('#cal-guard button');
+if (calGuardBtn) calGuardBtn.onclick = () => window.location.href = withMode('calibration.html');
+const gearBtn = document.getElementById('gear-btn');
+if (gearBtn) gearBtn.onclick = () => window.location.href = withMode('calibration.html');
+
 if (isPatientMode()) {
     // Show disclaimer footer
     const disc = document.getElementById('patient-disclaimer');
     if (disc) disc.style.display = 'block';
-
-    // Update calibration link to preserve mode
-    const calGuardBtn = document.querySelector('#cal-guard button');
-    if (calGuardBtn) calGuardBtn.onclick = () => window.location.href = withMode('calibration.html');
-
-    const gearBtn = document.getElementById('gear-btn');
-    if (gearBtn) gearBtn.onclick = () => window.location.href = withMode('calibration.html');
 }
 
 
