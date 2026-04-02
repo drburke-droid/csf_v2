@@ -19,6 +19,7 @@ import { computeResult, buildSessionRecord } from './results.js';
 import { saveSession, getLatestSession, getSessionsByPatient } from './db.js';
 import { exportSessionJSON, exportSessionCSV } from './export.js';
 import { isPatientMode, isClinicMode, buildExplorerURL, withMode, CAL_STALE_MS } from './config.js';
+import { logParabolaCSF } from './qcsf-engine.js';
 
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -668,6 +669,90 @@ if (isPatientMode()) {
     const trb = document.getElementById('tut-response-bar');
     if (trb) trb.style.display = 'flex';
     showWelcome();
+}
+
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Debug Mode — Simulated Patient  (?debug=young-adult|cataract|myope|mfiol)
+// Auto-answers trials using a known CSF profile. ~10 seconds instead of 20 min.
+// ═════════════════════════════════════════════════════════════════════════════
+
+const DEBUG_PROFILES = {
+    'young-adult': { g: 2.45, f: 4.0, b: 2.5, d: 0.5, nD: 0, nF: 0 },
+    'cataract':    { g: 1.65, f: 4.0, b: 2.0, d: 0.3, nD: 0, nF: 0 },
+    'myope':       { g: 2.15, f: 3.0, b: 1.5, d: 0.3, nD: 0, nF: 0 },
+    'mfiol':       { g: 2.20, f: 4.0, b: 2.2, d: 0.4, nD: 0.55, nF: 8 }
+};
+
+const debugParam = new URLSearchParams(window.location.search).get('debug');
+if (debugParam && DEBUG_PROFILES[debugParam]) {
+    console.log('[Debug] Simulated patient:', debugParam);
+    const dp = DEBUG_PROFILES[debugParam];
+
+    // Hide all overlays
+    for (const id of ['sync-overlay', 'welcome-overlay', 'tutorial-overlay', 'cal-guard', 'patient-id-overlay']) {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    }
+
+    patientId = 'DEBUG-' + debugParam.toUpperCase();
+    testStarted = true;
+
+    // Simulated psychometric response
+    function simulateResponse(stim) {
+        const logSens = logParabolaCSF(stim.frequency, dp.g, dp.f, dp.b, dp.d, dp.nD, dp.nF, 0.3);
+        const threshold = Math.pow(10, -logSens); // contrast at threshold
+        // Weibull-like psychometric function: p(correct) depends on how far above threshold
+        const ratio = stim.contrast / threshold;
+        const pCorrect = 1 - (1 - 1/mode.numAFC) * Math.exp(-Math.pow(ratio, 3.5));
+        return Math.random() < pCorrect;
+    }
+
+    // Auto-run trials with delay for visual feedback
+    const TRIAL_DELAY = 150; // ms between trials
+
+    function debugNextTrial() {
+        if (testComplete) return;
+
+        try {
+            currentStim = engine.selectStimulus();
+        } catch (e) {
+            finish();
+            return;
+        }
+
+        currentStim.contrast = Math.max(0.001, Math.min(1.0, currentStim.contrast || 0.5));
+
+        // Render the stimulus so the display updates visually
+        try {
+            const canvas = document.getElementById('stimCanvas');
+            if (canvas && mode) mode.render(canvas, currentStim, cal);
+        } catch (e) {}
+
+        // Simulate response
+        const correct = simulateResponse(currentStim);
+
+        try {
+            engine.update(currentStim.stimIndex, correct);
+        } catch (e) {
+            finish();
+            return;
+        }
+
+        updateProgress(engine.trialCount);
+
+        // Check convergence
+        if (engine.trialCount >= MAX_TRIALS) { finish(); return; }
+        if (engine.trialCount >= MIN_TRIALS && engine.isConverged()) { finish(); return; }
+
+        setTimeout(debugNextTrial, TRIAL_DELAY);
+    }
+
+    // Start after a brief delay
+    nextTrial(); // show first stimulus
+    setTimeout(() => {
+        debugNextTrial();
+    }, 500);
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
