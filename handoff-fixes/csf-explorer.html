@@ -685,11 +685,9 @@ function drawAll() {
             var cx = pad.left + cellW * (c + 0.5);
 
             for (var r = 0; r < rows; r++) {
-                // bottom row (r = rows-1) = brightest, top row (r = 0) = nearly invisible
-                var ct = r / (rows - 1);
-                var alpha = 0.01 + Math.pow(ct, 3.5) * 0.89;
-                // Reduce overall brightness so letters sit behind curves
-                alpha *= 0.35;
+                // bottom row (r = rows-1) = fully black, top row (r = 0) = nearly invisible
+                var ct = r / (rows - 1); // 0 = top, 1 = bottom
+                var alpha = 0.03 + Math.pow(ct, 2.5) * 0.97;
 
                 var cy = pad.top + cellH * (r + 0.5);
                 var letter = SLOAN[Math.floor(rand() * SLOAN.length)];
