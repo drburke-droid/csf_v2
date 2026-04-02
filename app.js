@@ -434,6 +434,11 @@ function initPeerSync() {
 }
 
 if (!isPatientMode()) {
+    // Fixed lane: skip QR overlay, go straight to patient ID prompt
+    if (urlLane) {
+        const so = document.getElementById('sync-overlay');
+        if (so) so.style.display = 'none';
+    }
     initPeerSync();
 }
 
@@ -721,19 +726,21 @@ function showPatientIdPrompt() {
 
 // Hook into sync overlay dismissal: show patient ID after tablet connects
 if (isClinicMode()) {
-    // Override the sync overlay dismiss to chain into patient ID prompt
-    const origOnConnect = sync ? sync._onConnectHook : null;
-
-    // Watch for sync overlay being hidden (MutationObserver)
-    const syncEl = document.getElementById('sync-overlay');
-    if (syncEl) {
-        const obs = new MutationObserver(() => {
-            if (syncEl.style.display === 'none') {
-                obs.disconnect();
-                showPatientIdPrompt();
-            }
-        });
-        obs.observe(syncEl, { attributes: true, attributeFilter: ['style'] });
+    if (urlLane) {
+        // Fixed lane: no QR overlay, show patient ID prompt immediately
+        showPatientIdPrompt();
+    } else {
+        // Watch for sync overlay being hidden (MutationObserver)
+        const syncEl = document.getElementById('sync-overlay');
+        if (syncEl) {
+            const obs = new MutationObserver(() => {
+                if (syncEl.style.display === 'none') {
+                    obs.disconnect();
+                    showPatientIdPrompt();
+                }
+            });
+            obs.observe(syncEl, { attributes: true, attributeFilter: ['style'] });
+        }
     }
 }
 
