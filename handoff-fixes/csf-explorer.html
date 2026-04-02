@@ -24,6 +24,7 @@
 .csf-explorer-root .profile-pill:hover{border-color:rgba(255,255,255,.2);color:var(--t1)}
 .csf-explorer-root .profile-pill.active{color:var(--t1);border-color:var(--pill-color,#888)}
 .csf-explorer-root .profile-pill.active::before{opacity:1}
+.csf-explorer-root .profile-select{display:none}
 
 /* ─── Profile info card ─── */
 .csf-explorer-root .profile-info{width:100%;border-radius:16px;border:1.5px solid var(--b2);background:rgba(12,12,16,.8);padding:clamp(14px,2.5vw,24px);opacity:0;animation:settleUp var(--settle) var(--ez) .18s forwards}
@@ -162,9 +163,9 @@ body.embed .csf-explorer-root .ref-section{padding-top:clamp(10px,2vw,16px)}
   .csf-explorer-root .obj-select{min-width:0;width:100%}
   .csf-explorer-root .dist-group{min-width:0}
   .csf-explorer-root .lighting-pills{justify-content:center}
-  .csf-explorer-root .profile-pills{gap:6px}
-  .csf-explorer-root .profile-pill{font-size:.72rem;padding:6px 12px;padding-left:22px}
-  .csf-explorer-root .profile-pill::before{width:6px;height:6px;left:8px}
+  .csf-explorer-root .profile-pills{display:none}
+  .csf-explorer-root .profile-select{display:block;width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid var(--b2);background:var(--chrome);color:var(--t1);font-family:var(--f);font-size:.82rem;cursor:pointer;outline:none;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+  .csf-explorer-root .profile-select option{background:#111;color:#eee}
   body.embed{padding:6px 6px 14px}
   body.embed .csf-explorer-root .page{gap:10px}
   body.embed .csf-explorer-root .controls{gap:10px}
@@ -194,6 +195,7 @@ body.embed .csf-explorer-root .ref-section{padding-top:clamp(10px,2vw,16px)}
   </div>
 
   <div class="profile-pills" id="profile-pills"></div>
+  <select class="profile-select" id="profile-select"></select>
 
   <div class="canvas-wrap">
     <div class="reveal-wrap" id="reveal-wrap">
@@ -571,6 +573,27 @@ function initControls() {
         };
         pillsEl.appendChild(btn);
     });
+
+    // Profile dropdown (mobile)
+    var profileSelect = document.getElementById('profile-select');
+    if (profileSelect) {
+        PROFILES.forEach(function(p, idx) {
+            var opt = document.createElement('option');
+            opt.value = idx;
+            opt.textContent = p.label;
+            profileSelect.appendChild(opt);
+        });
+        profileSelect.value = currentProfileIndex;
+        profileSelect.addEventListener('change', function() {
+            currentProfileIndex = parseInt(profileSelect.value);
+            // Sync pills (for if user resizes to desktop)
+            pillsEl.querySelectorAll('.profile-pill').forEach(function(b) {
+                b.classList.toggle('active', parseInt(b.dataset.idx) === currentProfileIndex);
+            });
+            updateProfileInfo();
+            scheduleRedraw();
+        });
+    }
 
     // Object select
     var sel = document.getElementById('obj-select');
