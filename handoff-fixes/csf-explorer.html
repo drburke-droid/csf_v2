@@ -38,13 +38,13 @@
 
 /* ─── Reveal overlay ─── */
 .csf-explorer-root .reveal-wrap{position:relative;overflow:hidden}
-.csf-explorer-root .reveal-overlay{position:absolute;left:0;right:0;top:0;background:#111116;border-bottom:3px solid rgba(255,255,255,.25);box-shadow:0 6px 30px rgba(0,0,0,.6);transition:height .4s cubic-bezier(.22,.68,0,1.04);cursor:grab;touch-action:none;z-index:10;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:28px 28px 6px;text-align:justify;user-select:none;-webkit-user-select:none;overflow:hidden}
+.csf-explorer-root .reveal-overlay{position:absolute;left:0;right:0;top:0;background:#111116;border-bottom:3px solid rgba(255,255,255,.25);box-shadow:0 6px 30px rgba(0,0,0,.6);transition:height .4s cubic-bezier(.22,.68,0,1.04);cursor:grab;touch-action:none;z-index:10;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:28px 28px 0;text-align:justify;user-select:none;-webkit-user-select:none;overflow:hidden}
 .csf-explorer-root .reveal-overlay:active{cursor:grabbing}
 .csf-explorer-root .reveal-overlay .reveal-content{transition:opacity .3s;display:flex;flex-direction:column;align-items:center}
 .csf-explorer-root .reveal-overlay .reveal-title{font-size:clamp(1.2rem,3vw,1.7rem);font-weight:700;color:#fff;margin-bottom:14px;line-height:1.35;text-align:center;letter-spacing:-.01em}
 .csf-explorer-root .reveal-overlay .reveal-body{font-size:clamp(.85rem,1.4vw,1rem);color:rgba(255,255,255,.7);max-width:560px;line-height:1.7;font-weight:400;margin-bottom:14px}
-.csf-explorer-root .reveal-arrows{position:relative;width:100%;height:40px;flex-shrink:0}
-.csf-explorer-root .reveal-arrow{position:absolute;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:1px;font-family:var(--m);font-weight:600;line-height:1;bottom:0}
+.csf-explorer-root .reveal-arrows{position:relative;width:100%;height:52px;flex-shrink:0}
+.csf-explorer-root .reveal-arrow{position:absolute;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:1px;font-family:var(--m);font-weight:600;line-height:1;bottom:2px}
 .csf-explorer-root .reveal-arrow .arrow-label{font-size:clamp(.58rem,.9vw,.7rem);white-space:nowrap}
 .csf-explorer-root .reveal-arrow .arrow-tip{font-size:clamp(.7rem,1.2vw,.9rem);animation:arrowBounce 1.5s ease-in-out infinite}
 @keyframes arrowBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
@@ -1114,7 +1114,7 @@ function drawAll() {
         for (var ai = 0; ai < arrowData.length; ai++) arrowData[ai].offsetPx = 0;
         for (var ai = 1; ai < arrowData.length; ai++) {
             if (arrowData[ai].pct - arrowData[ai - 1].pct < 8) {
-                arrowData[ai].offsetPx = arrowData[ai - 1].offsetPx === 0 ? -18 : 0;
+                arrowData[ai].offsetPx = arrowData[ai - 1].offsetPx === 0 ? -26 : 0;
             }
         }
         arrowData.forEach(function(a) {
