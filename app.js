@@ -15,7 +15,8 @@ import { drawGabor }     from './gabor.js';
 import { drawCSFPlot }   from './csf-plot.js';
 import { initSync }      from './peer-sync.js';
 import { initKeyboard }  from './keyboard.js';
-import { computeResult } from './results.js';
+import { computeResult, buildSessionRecord } from './results.js';
+import { saveSession, getLatestSession } from './db.js';
 import { isPatientMode, isClinicMode, buildExplorerURL, withMode, CAL_STALE_MS } from './config.js';
 
 
@@ -85,6 +86,7 @@ let testComplete = false;
 let testStarted  = false;
 let lastInputTime = 0;
 let sync         = null;
+let patientId    = null;   // clinic mode: patient ID for database
 
 // Tutorial (patient mode)
 const TUT = [
@@ -476,6 +478,20 @@ function finish() {
 
     const explorerURL = buildExplorerURL(result.params);
 
+    // Save to database (clinic mode with patient ID)
+    if (isClinicMode() && patientId) {
+        try {
+            const record = buildSessionRecord(engine, result, patientId, currentModeId);
+            saveSession(record).then(id => {
+                console.log('[DB] Session saved, id:', id);
+            }).catch(err => {
+                console.warn('[DB] Save failed:', err);
+            });
+        } catch (e) {
+            console.warn('[DB] Record build failed:', e);
+        }
+    }
+
     if (isPatientMode()) {
         finishPatient(result, explorerURL);
     } else {
@@ -583,6 +599,82 @@ if (isPatientMode()) {
     const trb = document.getElementById('tut-response-bar');
     if (trb) trb.style.display = 'flex';
     showWelcome();
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Patient ID prompt (clinic mode)
+// ═════════════════════════════════════════════════════════════════════════════
+
+function showPatientIdPrompt() {
+    if (isPatientMode()) return;
+    const overlay = document.getElementById('patient-id-overlay');
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+
+    const input = document.getElementById('patient-id-input');
+    const startBtn = document.getElementById('patient-id-start');
+    const anonBtn = document.getElementById('patient-id-anon');
+    const priorEl = document.getElementById('patient-id-prior');
+
+    if (input) input.focus();
+
+    // Check for prior data as user types
+    let debounceTimer = null;
+    if (input) input.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(async () => {
+            const id = input.value.trim();
+            if (id.length >= 2) {
+                const prev = await getLatestSession(id);
+                if (prev && priorEl) {
+                    const d = new Date(prev.timestamp).toLocaleDateString();
+                    priorEl.textContent = 'Previous session found: ' + d + ' (' + prev.mode + ', AULCSF ' + prev.aulcsf.toFixed(2) + ')';
+                } else if (priorEl) {
+                    priorEl.textContent = 'New patient';
+                }
+            } else if (priorEl) {
+                priorEl.textContent = '';
+            }
+        }, 300);
+    });
+
+    function proceed(id) {
+        patientId = id;
+        overlay.style.display = 'none';
+    }
+
+    if (startBtn) startBtn.onclick = () => {
+        const id = input ? input.value.trim() : '';
+        if (!id) { if (input) input.style.borderColor = '#ff453a'; return; }
+        proceed(id);
+    };
+
+    if (anonBtn) anonBtn.onclick = () => {
+        proceed('ANON-' + Math.floor(1000 + Math.random() * 9000));
+    };
+
+    // Enter key to submit
+    if (input) input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { if (startBtn) startBtn.click(); }
+    });
+}
+
+// Hook into sync overlay dismissal: show patient ID after tablet connects
+if (isClinicMode()) {
+    // Override the sync overlay dismiss to chain into patient ID prompt
+    const origOnConnect = sync ? sync._onConnectHook : null;
+
+    // Watch for sync overlay being hidden (MutationObserver)
+    const syncEl = document.getElementById('sync-overlay');
+    if (syncEl) {
+        const obs = new MutationObserver(() => {
+            if (syncEl.style.display === 'none') {
+                obs.disconnect();
+                showPatientIdPrompt();
+            }
+        });
+        obs.observe(syncEl, { attributes: true, attributeFilter: ['style'] });
+    }
 }
 
 // Dev mode: skip straight to results with average CSF curve (?dev)

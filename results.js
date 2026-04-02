@@ -41,3 +41,30 @@ export function computeResult(engine) {
 
     return { aulcsf, rank, detail, params, notchProb };
 }
+
+/**
+ * Build a full session record for database storage.
+ *
+ * @param {QCSFEngine} engine    – completed engine instance
+ * @param {TestResult}  result   – from computeResult()
+ * @param {string}      patientId
+ * @param {string}      modeId   – 'gabor' | 'tumblingE' | 'sloan'
+ * @returns {object} ready for IndexedDB
+ */
+export function buildSessionRecord(engine, result, patientId, modeId) {
+    return {
+        patientId,
+        timestamp: new Date().toISOString(),
+        mode: modeId,
+        trialCount: engine.trialCount,
+        aulcsf: result.aulcsf,
+        rank: result.rank,
+        detail: result.detail,
+        params: result.params,
+        bmaCurve: engine.getBMACurve(150),
+        posterior: new Float64Array(engine.prior),
+        notchProb: result.notchProb,
+        notchEstimate: engine.getNotchEstimate(),
+        history: [...engine.history]
+    };
+}

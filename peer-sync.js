@@ -13,6 +13,7 @@
  *   { type: 'setMode',  mode }
  *   { type: 'settings', key, value }
  *   { type: 'command',  action }  // 'start', 'restart', 'calibrate'
+ *   { type: 'setPatient', patientId }
  */
 
 export function initSync(laneID, callbacks) {
@@ -44,6 +45,9 @@ export function initSync(laneID, callbacks) {
                     break;
                 case 'command':
                     if (callbacks.onCommand) callbacks.onCommand(data.action);
+                    break;
+                case 'setPatient':
+                    if (callbacks.onSetPatient) callbacks.onSetPatient(data.patientId);
                     break;
             }
         });
@@ -98,6 +102,13 @@ export function initSync(laneID, callbacks) {
         sendTestStart(maxTrials) {
             if (activeConn && activeConn.open) {
                 activeConn.send({ type: 'testStart', maxTrials });
+            }
+        },
+
+        /** Send patient ID to tablet */
+        sendPatientId(patientId) {
+            if (activeConn && activeConn.open) {
+                activeConn.send({ type: 'patientId', patientId });
             }
         },
 
