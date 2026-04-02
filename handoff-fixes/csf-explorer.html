@@ -1072,14 +1072,20 @@ function drawAll() {
         ctx.fill();
         ctx.restore();
 
-        // Label with leader line if above
+        // Label — shift rightmost dot's label right to avoid curve overlap
+        var isRightmost = (dot === cutoffDots[cutoffDots.length - 1]);
         ctx.save();
         ctx.fillStyle = dot.color;
         ctx.font = '600 ' + labelFontSize + 'px "JetBrains Mono", monospace';
-        ctx.textAlign = 'center';
         if (dot.labelBelow) {
-            ctx.fillText(dot.label, dot.x, dot.y + dotR + 15);
+            var labelX = dot.x;
+            ctx.textAlign = 'center';
+            if (isRightmost) { labelX = dot.x + dotR + 4; ctx.textAlign = 'left'; }
+            ctx.fillText(dot.label, labelX, dot.y + dotR + 15);
         } else {
+            var labelX = dot.x;
+            ctx.textAlign = 'center';
+            if (isRightmost) { labelX = dot.x + dotR + 4; ctx.textAlign = 'left'; }
             // Draw above with a small leader line
             ctx.strokeStyle = dot.color;
             ctx.globalAlpha = 0.4;
@@ -1089,7 +1095,7 @@ function drawAll() {
             ctx.lineTo(dot.x, dot.y - dotR - 14);
             ctx.stroke();
             ctx.globalAlpha = 1;
-            ctx.fillText(dot.label, dot.x, dot.y - dotR - 18);
+            ctx.fillText(dot.label, labelX, dot.y - dotR - 18);
         }
         ctx.restore();
     });
@@ -1098,13 +1104,26 @@ function drawAll() {
     var arrowContainer = document.getElementById('reveal-arrows');
     if (arrowContainer) {
         arrowContainer.innerHTML = '';
-        cutoffDots.forEach(function(dot) {
-            var pctLeft = (dot.x / W) * 100;
+        // Compute positions as percentages, then stagger vertically if too close
+        var arrowData = cutoffDots.map(function(dot) {
+            return { pct: (dot.x / W) * 100, color: dot.color, name: dot.name.split('(')[0].trim().split(' ')[0] };
+        });
+        // Sort by position for overlap detection
+        arrowData.sort(function(a, b) { return a.pct - b.pct; });
+        // Assign vertical offsets: alternate when arrows are within 8% of each other
+        for (var ai = 0; ai < arrowData.length; ai++) arrowData[ai].offsetPx = 0;
+        for (var ai = 1; ai < arrowData.length; ai++) {
+            if (arrowData[ai].pct - arrowData[ai - 1].pct < 8) {
+                arrowData[ai].offsetPx = arrowData[ai - 1].offsetPx === 0 ? -18 : 0;
+            }
+        }
+        arrowData.forEach(function(a) {
             var el = document.createElement('div');
             el.className = 'reveal-arrow';
-            el.style.left = pctLeft + '%';
-            el.style.color = dot.color;
-            el.innerHTML = '<span class="arrow-label">' + dot.name.split('(')[0].trim().split(' ')[0] + '</span><span class="arrow-tip">\u25BC</span>';
+            el.style.left = a.pct + '%';
+            el.style.color = a.color;
+            if (a.offsetPx) el.style.bottom = (-a.offsetPx) + 'px';
+            el.innerHTML = '<span class="arrow-label">' + a.name + '</span><span class="arrow-tip">\u25BC</span>';
             arrowContainer.appendChild(el);
         });
     }
