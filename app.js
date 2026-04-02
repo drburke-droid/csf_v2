@@ -29,8 +29,8 @@ const MIN_TRIALS  = 30;
 const MAX_TRIALS  = 80;
 const DEBOUNCE_MS = 250;
 
-// Default mode: gabor for both clinic and patient
-let currentModeId = localStorage.getItem('qcsf_mode') || 'gabor';
+// Always default to gabor — ignore stale localStorage values
+let currentModeId = 'gabor';
 
 
 // ═════════════════════════════════════════════════════════════════════════════
