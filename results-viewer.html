@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CSF Results Viewer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,200;9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@200;300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0c;--s:#111118;--b:rgba(255,255,255,.06);--b2:rgba(255,255,255,.10);--a:#00ffcc;--t1:rgba(255,255,255,.92);--t2:rgba(255,255,255,.45);--t3:rgba(255,255,255,.18);--f:'DM Sans',sans-serif;--m:'JetBrains Mono',monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--t1);font-family:var(--f);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px}
+.hdr{text-align:center;margin-bottom:20px}
+.hdr h1{font-size:1.4rem;font-weight:200;letter-spacing:-.02em}
+.hdr .sub{font-family:var(--m);font-size:.65rem;color:var(--t3);margin-top:4px}
+.status{font-family:var(--m);font-size:.7rem;color:var(--a);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.status .dot{width:6px;height:6px;border-radius:50%;background:var(--a);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.card{background:var(--s);border:1px solid var(--b2);border-radius:14px;padding:20px;width:100%;max-width:1200px;margin-bottom:16px}
+.card h2{font-size:.8rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:12px}
+.stats{display:flex;flex-wrap:wrap;gap:20px;margin-bottom:16px}
+.stat{text-align:center}
+.stat .val{font-family:var(--m);font-size:2rem;font-weight:700;color:var(--a)}
+.stat .lbl{font-size:.65rem;color:var(--t2);margin-top:2px}
+.meta{font-family:var(--m);font-size:.65rem;color:var(--t3);line-height:1.8}
+canvas{width:100%;height:auto;border-radius:8px;margin-top:10px}
+.history{max-height:300px;overflow-y:auto}
+.row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--b);cursor:pointer;transition:background .15s}
+.row:hover{background:rgba(255,255,255,.03)}
+.row.active{background:rgba(0,255,204,.05);border-color:rgba(0,255,204,.15)}
+.row .pid{font-family:var(--m);font-size:.75rem;color:var(--a);min-width:100px}
+.row .date{font-size:.7rem;color:var(--t2);min-width:100px}
+.row .auc{font-family:var(--m);font-size:.8rem;font-weight:500;min-width:60px}
+.row .rank{font-size:.65rem;color:var(--t3)}
+.row .trials{font-family:var(--m);font-size:.6rem;color:var(--t3)}
+.empty{text-align:center;color:var(--t3);font-size:.8rem;padding:40px 0}
+.btn-row{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.btn{font-family:var(--m);font-size:.7rem;padding:8px 16px;border-radius:8px;border:1px solid var(--b2);background:transparent;color:var(--t2);cursor:pointer}
+.btn:hover{border-color:var(--a);color:var(--a)}
+</style>
+</head>
+<body>
+<div class="hdr">
+    <h1>CSF Results Viewer</h1>
+    <div class="sub">Open on your PC — auto-refreshes when tests complete</div>
+</div>
+<div class="status"><span class="dot"></span><span id="status-text">Watching for new results...</span></div>
+
+<div class="card" id="result-card" style="display:none">
+    <h2>Current Result</h2>
+    <div class="stats">
+        <div class="stat"><div class="val" id="v-pid">—</div><div class="lbl">Patient</div></div>
+        <div class="stat"><div class="val" id="v-auc">—</div><div class="lbl">AULCSF</div></div>
+        <div class="stat"><div class="val" id="v-rank">—</div><div class="lbl">Rank</div></div>
+        <div class="stat"><div class="val" id="v-trials">—</div><div class="lbl">Trials</div></div>
+    </div>
+    <div class="meta" id="v-meta"></div>
+    <canvas id="plot" width="1200" height="700"></canvas>
+    <div class="btn-row">
+        <button class="btn" id="btn-json">Export JSON</button>
+        <button class="btn" id="btn-csv">Export CSV</button>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Session History</h2>
+    <div class="history" id="history-list"><div class="empty">No sessions yet</div></div>
+</div>
+
+<script type="module">
+import { getSessionsByPatient, getAllPatients, getSession } from './db.js';
+import { exportSessionJSON, exportSessionCSV } from './export.js';
+import { logParabolaCSF } from './qcsf-engine.js';
+
+let currentSession = null;
+let lastSessionCount = 0;
+
+// ── Draw BMA curve from stored data ──
+function drawCurve(canvas, session) {
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const pad = { top: 20, right: 30, bottom: 50, left: 65 };
+    const pW = W - pad.left - pad.right;
+    const pH = H - pad.top - pad.bottom;
+    const logFMin = -0.3, logFMax = 1.78;
+    const logSMin = -0.5, logSMax = 3.0;
+    const toX = lf => pad.left + (lf - logFMin) / (logFMax - logFMin) * pW;
+    const toY = ls => pad.top + pH - (ls - logSMin) / (logSMax - logSMin) * pH;
+
+    // Background
+    ctx.fillStyle = '#0a0a0c';
+    ctx.fillRect(0, 0, W, H);
+
+    // Grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+    ctx.lineWidth = 1;
+    [1, 3, 10, 30, 100, 300].forEach(s => {
+        const y = toY(Math.log10(s));
+        if (y >= pad.top && y <= pad.top + pH) {
+            ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pW, y); ctx.stroke();
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.font = '12px "JetBrains Mono"';
+            ctx.textAlign = 'right';
+            ctx.fillText(String(s), pad.left - 8, y + 4);
+        }
+    });
+
+    // Snellen marks on x-axis
+    var snellen = [{cpd:3,l:'20/200'},{cpd:6,l:'20/100'},{cpd:10,l:'20/60'},{cpd:15,l:'20/40'},{cpd:20,l:'20/30'},{cpd:30,l:'20/20'},{cpd:40,l:'20/15'}];
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.font = '11px "JetBrains Mono"';
+    ctx.textAlign = 'center';
+    snellen.forEach(m => {
+        const x = toX(Math.log10(m.cpd));
+        if (x >= pad.left && x <= pad.left + pW) {
+            ctx.fillText(m.l, x, pad.top + pH + 18);
+            ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+            ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + pH); ctx.stroke();
+        }
+    });
+
+    // BMA curve
+    const curve = session.bmaCurve;
+    if (!curve || !curve.length) return;
+
+    // Gradient fill
+    const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + pH);
+    grad.addColorStop(0, 'rgba(0,255,204,0.12)');
+    grad.addColorStop(1, 'rgba(0,255,204,0.0)');
+    ctx.beginPath();
+    let firstX = null, firstY = null, lastX = null;
+    for (const pt of curve) {
+        if (pt.logS < logSMin) continue;
+        const x = toX(Math.log10(pt.freq));
+        const y = toY(Math.min(pt.logS, logSMax));
+        if (firstX === null) { ctx.moveTo(x, y); firstX = x; }
+        else ctx.lineTo(x, y);
+        lastX = x;
+    }
+    if (firstX !== null) {
+        ctx.lineTo(lastX, toY(logSMin));
+        ctx.lineTo(firstX, toY(logSMin));
+        ctx.closePath();
+        ctx.fillStyle = grad;
+        ctx.fill();
+    }
+
+    // Curve stroke
+    ctx.strokeStyle = '#00ffcc';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    let started = false;
+    for (const pt of curve) {
+        if (pt.logS < logSMin) continue;
+        const x = toX(Math.log10(pt.freq));
+        const y = toY(Math.min(pt.logS, logSMax));
+        if (!started) { ctx.moveTo(x, y); started = true; }
+        else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Trial markers
+    if (session.history) {
+        // We don't have the stimGrid here, but history has stimIndex
+        // Skip trial markers if no stim grid available
+    }
+
+    // Notch indicator
+    if (session.notchProb > 0.5 && session.notchEstimate) {
+        const nf = session.notchEstimate.freq;
+        const nx = toX(Math.log10(nf));
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,100,60,0.5)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath(); ctx.moveTo(nx, pad.top); ctx.lineTo(nx, pad.top + pH); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(255,100,60,0.6)';
+        ctx.font = '10px "DM Sans"';
+        ctx.textAlign = 'center';
+        ctx.fillText('notch ' + nf + ' cpd (p=' + (session.notchProb * 100).toFixed(0) + '%)', nx, pad.top + 14);
+        ctx.restore();
+    }
+
+    // Axis titles
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '12px "DM Sans"';
+    ctx.textAlign = 'center';
+    ctx.fillText('Snellen Acuity', pad.left + pW / 2, pad.top + pH + 36);
+    ctx.save();
+    ctx.translate(14, pad.top + pH / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Sensitivity', 0, 0);
+    ctx.restore();
+
+    // Border
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(pad.left, pad.top, pW, pH);
+}
+
+function showSession(session) {
+    currentSession = session;
+    document.getElementById('result-card').style.display = '';
+    document.getElementById('v-pid').textContent = session.patientId;
+    document.getElementById('v-auc').textContent = session.aulcsf.toFixed(2);
+    document.getElementById('v-rank').textContent = session.rank;
+    document.getElementById('v-trials').textContent = session.trialCount;
+
+    const d = new Date(session.timestamp);
+    const meta = [
+        'Date: ' + d.toLocaleString(),
+        'Mode: ' + session.mode,
+        session.detail || '',
+        session.notchProb > 0.5 ? 'Notch detected (p=' + (session.notchProb * 100).toFixed(0) + '%)' : ''
+    ].filter(Boolean).join(' | ');
+    document.getElementById('v-meta').textContent = meta;
+
+    drawCurve(document.getElementById('plot'), session);
+
+    document.getElementById('btn-json').onclick = () => exportSessionJSON(session);
+    document.getElementById('btn-csv').onclick = () => exportSessionCSV(session);
+}
+
+async function loadHistory() {
+    const patients = await getAllPatients();
+    const allSessions = [];
+    for (const pid of patients) {
+        const sessions = await getSessionsByPatient(pid);
+        allSessions.push(...sessions);
+    }
+    allSessions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    const list = document.getElementById('history-list');
+    if (!allSessions.length) {
+        list.innerHTML = '<div class="empty">No sessions yet</div>';
+        return allSessions;
+    }
+
+    list.innerHTML = '';
+    allSessions.forEach(s => {
+        const row = document.createElement('div');
+        row.className = 'row' + (currentSession && currentSession.id === s.id ? ' active' : '');
+        const d = new Date(s.timestamp);
+        row.innerHTML =
+            '<span class="pid">' + s.patientId + '</span>' +
+            '<span class="date">' + d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) + '</span>' +
+            '<span class="auc">' + s.aulcsf.toFixed(2) + '</span>' +
+            '<span class="rank">' + s.rank + '</span>' +
+            '<span class="trials">' + s.trialCount + ' trials</span>';
+        row.onclick = () => showSession(s);
+        list.appendChild(row);
+    });
+
+    return allSessions;
+}
+
+// Poll for new sessions every 3 seconds
+async function poll() {
+    try {
+        const sessions = await loadHistory();
+        if (sessions.length > lastSessionCount && sessions.length > 0) {
+            // New session detected — auto-show it
+            showSession(sessions[0]);
+            document.getElementById('status-text').textContent = 'New result: ' + sessions[0].patientId;
+            lastSessionCount = sessions.length;
+        }
+    } catch (e) {}
+    setTimeout(poll, 3000);
+}
+
+// Initial load
+loadHistory().then(sessions => {
+    lastSessionCount = sessions.length;
+    if (sessions.length > 0) showSession(sessions[0]);
+});
+poll();
+</script>
+</body>
+</html>
