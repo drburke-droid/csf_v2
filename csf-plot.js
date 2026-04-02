@@ -25,8 +25,8 @@ export function drawCSFPlot(canvas, engine, params) {
     const plotW = W - pad.left - pad.right;
     const plotH = H - pad.top  - pad.bottom;
 
-    // Axis ranges (log10 space)
-    const logFMin = -0.3, logFMax = 1.7;   // 0.5 – 50 cpd
+    // Axis ranges (log10 space) — capped at ~60 cpd (20/10 Snellen)
+    const logFMin = -0.3, logFMax = 1.78;  // 0.5 – 60 cpd (20/10)
     const logSMin = -0.5, logSMax = 3.0;   // 0.3 – 1000 sensitivity
 
     const toX = logF => pad.left + (logF - logFMin) / (logFMax - logFMin) * plotW;
@@ -87,7 +87,8 @@ export function drawCSFPlot(canvas, engine, params) {
     // (grid lines removed — letter background serves as visual reference)
 
     // ── BMA Curve (primary — can show dips and non-standard shapes) ─────
-    const bmaCurve = engine.getBMACurve(150);
+    // Use high-resolution BMA curve (300 points) — preserves notches/dips
+    const bmaCurve = engine.getBMACurve(300);
 
     // Gradient fill under curve
     const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + plotH);

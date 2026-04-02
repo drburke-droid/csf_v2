@@ -361,8 +361,10 @@ export class QCSFEngine {
      */
     getBMACurve(nPoints = 100) {
         const curve = [];
+        // Range: 0.5 cpd to 60 cpd (20/10 Snellen — clinical maximum)
+        const logFMin = -0.3, logFMax = 1.78;
         for (let i = 0; i < nPoints; i++) {
-            const freq = Math.pow(10, -0.3 + i * 2.0 / (nPoints - 1));
+            const freq = Math.pow(10, logFMin + i * (logFMax - logFMin) / (nPoints - 1));
             curve.push({ freq, logS: this.getBMAValue(freq) });
         }
         return curve;

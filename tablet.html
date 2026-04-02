@@ -38,7 +38,7 @@ body{background:var(--c);color:var(--t1);font-family:var(--f);-webkit-font-smoot
 .db:active{transform:scale(.92);background:var(--as);border-color:var(--a);color:var(--a)}
 .db[data-p="t"]{grid-column:2;grid-row:1}.db[data-p="l"]{grid-column:1;grid-row:2}
 .db[data-p="r"]{grid-column:3;grid-row:2}.db[data-p="b"]{grid-column:2;grid-row:3}
-.db[data-p="c"]{grid-column:2;grid-row:2;pointer-events:none;opacity:.08;font-size:.5rem;color:var(--t3)}
+.db[data-p="c"]{grid-column:2;grid-row:2}
 
 .gabor-btn{flex-direction:column;gap:3px;padding:3px;background:none;border:none;border-radius:0}
 .gabor-btn:active{background:none;border:none;transform:scale(.92)}
@@ -49,7 +49,9 @@ body.surface .gbr-lbl{font-size:clamp(.6rem,1.8vw,.85rem)}
 body.surface .gabor-btn{gap:3px;padding:4px}
 
 .fl{animation:fl .3s ease-out}
-@keyframes fl{0%{background:var(--as);border-color:var(--a);color:var(--a);box-shadow:0 0 14px var(--ag)}100%{background:var(--s);border-color:var(--b);color:var(--t2);box-shadow:none}}
+@keyframes fl{0%{box-shadow:0 0 20px var(--ag);transform:scale(.93)}100%{box-shadow:none;transform:scale(1)}}
+.gabor-btn.fl{animation:gfl .3s ease-out}
+@keyframes gfl{0%{filter:brightness(1.5);transform:scale(.93)}100%{filter:brightness(1);transform:scale(1)}}
 
 .dis{opacity:.15;pointer-events:none}
 .db.tut-hl{border-color:#ff453a;background:rgba(255,69,58,.12);box-shadow:0 0 20px rgba(255,69,58,.3);color:#ff453a;animation:tutPulse 1.2s ease-in-out infinite;pointer-events:auto!important;opacity:1!important;font-size:1.4rem!important}
@@ -165,7 +167,7 @@ body.surface .prompt{font-size:.6rem;position:relative;margin-bottom:8px}
 
 <div class="rv" id="rv">
 <!-- Clinic mode results -->
-<div id="rv-clinic"><div class="ey">AULCSF</div><div class="sc" id="rsc">—</div><div class="rk" id="rrk"></div><div class="dt" id="rdt"></div></div>
+<div id="rv-clinic"><div class="ey">AULCSF</div><div class="sc" id="rsc">—</div><div class="rk" id="rrk"></div><div class="dt" id="rdt"></div><img id="rv-clinic-plot" class="rv-plot" style="display:none;margin-top:10px" alt="CSF Plot"></div>
 <!-- Patient mode results -->
 <div id="rv-patient" style="display:none;text-align:center;">
 <div class="pt-heading">Test Complete</div>
@@ -379,6 +381,8 @@ function exitTutorial(){
 function showPlotImage(url){
     var img=document.getElementById('rv-plot-img');
     if(img){img.src=url;img.style.display='block'}
+    var img2=document.getElementById('rv-clinic-plot');
+    if(img2){img2.src=url;img2.style.display='block'}
 }
 
 function emailExplorerLink(){

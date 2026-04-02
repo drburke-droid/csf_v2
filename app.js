@@ -635,9 +635,20 @@ function finishClinic(result, explorerURL) {
         if (plotCanvas) drawCSFPlot(plotCanvas, engine, result.params);
     } catch (e) { /* ignore */ }
 
-    // Send to tablet (full scores)
+    // Send to tablet (full scores + plot image)
     if (sync && sync.connected) {
         sync.sendResults(result.aulcsf.toFixed(2), result.rank, result.detail);
+
+        // Send plot image to tablet for patient review
+        try {
+            const srcCanvas = document.getElementById('csf-plot');
+            if (srcCanvas) {
+                const sendCanvas = document.createElement('canvas');
+                sendCanvas.width = 960; sendCanvas.height = 560;
+                sendCanvas.getContext('2d').drawImage(srcCanvas, 0, 0, 960, 560);
+                sync.sendPlotImage(sendCanvas.toDataURL('image/jpeg', 0.85));
+            }
+        } catch (e) { console.warn('[App] Plot send failed:', e); }
     }
 }
 
