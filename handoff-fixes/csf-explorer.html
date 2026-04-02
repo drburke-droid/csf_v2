@@ -5,11 +5,8 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,200;9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@200;300;400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0a0a0c;--chrome:#0a0a0c;--s1:#0c0c10;--s2:#111118;--a:#00ffcc;--as:rgba(0,255,204,.06);--ag:rgba(0,255,204,.25);--a2:rgba(0,255,204,.12);--b:rgba(255,255,255,.06);--b2:rgba(255,255,255,.10);--t1:rgba(255,255,255,.92);--t2:rgba(255,255,255,.45);--t3:rgba(255,255,255,.18);--e:#ff453a;--f:'DM Sans',-apple-system,system-ui,sans-serif;--m:'JetBrains Mono','SF Mono',monospace;--ez:cubic-bezier(.22,.68,0,1.04);--ez-out:cubic-bezier(0,.55,.45,1);--settle:550ms}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{font-size:100%}
-html,body{min-height:100vh}
-body{background:#0a0a0c;font-family:var(--f);color:var(--t1);-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;align-items:center;padding:clamp(24px,5vh,60px) 20px 40px}
-.csf-explorer-root{background:#0a0a0c;width:100%;display:flex;flex-direction:column;align-items:center;padding:clamp(24px,5vh,60px) 20px 40px;font-family:var(--f);color:var(--t1);-webkit-font-smoothing:antialiased}
+.csf-explorer-root,.csf-explorer-root *,.csf-explorer-root *::before,.csf-explorer-root *::after{box-sizing:border-box;margin:0;padding:0}
+.csf-explorer-root{background:#0a0a0c;width:100%;max-width:100%;overflow-x:hidden;display:flex;flex-direction:column;align-items:center;padding:clamp(24px,5vh,60px) 20px 40px;font-family:var(--f);color:var(--t1);-webkit-font-smoothing:antialiased}
 @keyframes settleUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
