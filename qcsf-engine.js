@@ -94,10 +94,11 @@ const DEFAULTS = {
     truncationValues:   [0, 0.5, 1.0, 1.5, 2.0],
 
     // Notch parameters: model frequency-band-specific deficits
-    notchDepthValues:   [0, 0.5, 1.0],
-    notchFreqValues:    [2, 4, 8],
+    // Finer depths + more frequencies than original, prior weight reduced
+    notchDepthValues:   [0, 0.3, 0.6, 1.0],
+    notchFreqValues:    [2, 4, 6, 8],
     notchWidth:         0.3,              // fixed sigma (log10 units ≈ 1 octave)
-    noNotchPriorWeight: 5.0,              // relative prior weight for no-notch hypotheses
+    noNotchPriorWeight: 2.0,              // reduced from 5.0 — less resistance to detecting notches
 
     stimFreqs:          [0.5, 1, 1.5, 2, 3, 4, 6, 8, 12, 16, 24],
     stimLogContrasts:   linspace(-3.0, 0.0, 30),
