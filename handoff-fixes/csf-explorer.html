@@ -57,10 +57,11 @@
 .csf-explorer-root .reveal-handle .handle-text{font-family:var(--m);font-size:.82rem;font-weight:500;color:var(--a);animation:revealPulse 2s ease-in-out infinite}
 @keyframes revealPulse{0%,100%{opacity:.5;transform:translateY(0)}50%{opacity:1;transform:translateY(2px)}}
 @media(max-width:640px){
-  .csf-explorer-root .reveal-bottom{flex-direction:row;align-items:stretch}
-  .csf-explorer-root .reveal-handle{flex:0 0 auto;width:70px;padding:6px 8px;border-right:1px solid rgba(255,255,255,.12);flex-direction:column;justify-content:center;align-items:center}
-  .csf-explorer-root .reveal-handle .handle-text{font-size:.62rem;white-space:normal;text-align:center;line-height:1.4}
-  .csf-explorer-root .reveal-arrows{flex:1;height:50px}
+  .csf-explorer-root .reveal-overlay{padding:12px 14px 0}
+  .csf-explorer-root .reveal-bottom{flex-direction:column-reverse;align-items:stretch}
+  .csf-explorer-root .reveal-handle{padding:5px 10px;border-top:1px solid rgba(255,255,255,.1);justify-content:center}
+  .csf-explorer-root .reveal-handle .handle-text{font-size:.62rem;white-space:normal;text-align:center;line-height:1.3}
+  .csf-explorer-root .reveal-arrows{height:44px}
 }
 
 /* ─── Controls ─── */
@@ -1120,10 +1121,10 @@ function drawAll() {
         var isMob = window.innerWidth < 640;
         // Desktop nudges (px): shift arrows right to line up with dots
         var desktopNudge = { 'Myope': 20, 'Cataract': 30, 'Multifocal': 20, 'Young': 0 };
-        var mobileGlobalNudge = 20; // all arrows shift right on mobile
+        var mobileNudge = { 'Myope': 20, 'Cataract': 20, 'Multifocal': 30, 'Young': 20 };
         var arrowData = cutoffDots.map(function(dot) {
             var shortName = dot.name.split('(')[0].trim().split(' ')[0];
-            var nudgePx = isMob ? mobileGlobalNudge : (desktopNudge[shortName] || 0);
+            var nudgePx = isMob ? (mobileNudge[shortName] || 20) : (desktopNudge[shortName] || 0);
             var pct = ((dot.x + nudgePx) / W) * 100;
             return { pct: pct, color: dot.color, name: shortName };
         });
