@@ -358,7 +358,9 @@ const teardownKeyboard = initKeyboard(letter => {
 // PeerJS
 // ═════════════════════════════════════════════════════════════════════════════
 
-const laneID = 'CSF-' + Math.floor(1000 + Math.random() * 9000);
+// Fixed lane ID from URL (?lane=CLINIC) or random
+const urlLane = new URLSearchParams(window.location.search).get('lane');
+const laneID = urlLane ? 'CSF-' + urlLane : 'CSF-' + Math.floor(1000 + Math.random() * 9000);
 
 function initPeerSync() {
     if (typeof Peer === 'undefined') {
@@ -695,6 +697,10 @@ function showPatientIdPrompt() {
     function proceed(id) {
         patientId = id;
         overlay.style.display = 'none';
+        // Send patient ID to tablet
+        if (sync && sync.connected) sync.sendPatientId(id);
+        // Reinit engine with prior if returning patient
+        initMode(currentModeId);
     }
 
     if (startBtn) startBtn.onclick = () => {

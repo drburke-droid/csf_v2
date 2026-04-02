@@ -93,11 +93,20 @@ body{background:var(--c);color:var(--t1);font-family:var(--f);-webkit-font-smoot
 .co .cc{width:56px;height:56px;border-radius:50%;background:#fff;border:3px solid rgba(255,255,255,.3);cursor:pointer}
 .co .cc:active{transform:scale(.9)}
 .co .cx{position:absolute;top:14px;right:14px;background:rgba(0,0,0,.5);border:0;color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:16px}
+/* ─── Surface Remote Mode ─── */
+body.surface .tabs{display:none}
+body.surface .lb{font-size:1.5rem;border-radius:16px}
+body.surface .lpad{width:min(92vw,420px)}
+body.surface .dpad{width:min(80vw,320px);height:min(80vw,320px)}
+body.surface .db{border-radius:18px;font-size:1.8rem}
+body.surface .hdr{padding:10px 20px 4px}
+body.surface .brand{font-size:.75rem}
+body.surface .patient-badge{display:inline-block;font-family:var(--m);font-size:.55rem;color:var(--a);background:var(--as);padding:3px 10px;border-radius:4px;margin-left:10px;letter-spacing:.5px}
 </style>
 </head>
 <body>
 
-<div class="hdr"><span class="brand">Manifold</span><div class="gear" onclick="toggleSettings()">⚙</div></div>
+<div class="hdr"><span class="brand">Manifold<span class="patient-badge" id="patient-badge" style="display:none"></span></span><div class="gear" onclick="toggleSettings()">⚙</div></div>
 
 <div class="tabs" id="tabs">
 <button class="tab on" data-m="sloan" onclick="setMode('sloan')">Sloan</button>
@@ -145,10 +154,12 @@ body{background:var(--c);color:var(--t1);font-family:var(--f);-webkit-font-smoot
 <div class="sp" id="sp">
 <div class="sh"><span class="st">Settings</span><button class="sc2" onclick="toggleSettings()">Done</button></div>
 <div class="sr"><span class="sl">Mode</span><span class="sv" id="sm">Sloan</span></div>
-<div class="sr"><span class="sl">Trials</span><span class="sv">50</span></div>
+<div class="sr"><span class="sl">Patient</span><span class="sv" id="sp-patient">—</span></div>
+<div class="sr"><span class="sl">Trials</span><span class="sv">30–80 (adaptive)</span></div>
 <div class="sr"><span class="sl">Calibration</span><span class="sv" id="scs">—</span></div>
 <button class="cbtn" onclick="openCam()">📷  Measure Distance</button>
 <button class="cbtn" onclick="sendCmd('calibrate')">Calibration Wizard</button>
+<button class="cbtn" style="color:var(--a);border-color:rgba(0,255,204,.15)" onclick="newPatient()">New Patient</button>
 <button class="cbtn" style="color:var(--e);border-color:rgba(255,69,58,.15)" onclick="sendCmd('restart')">Restart Test</button>
 </div>
 
@@ -165,7 +176,11 @@ body{background:var(--c);color:var(--t1);font-family:var(--f);-webkit-font-smoot
 const urlParams=new URLSearchParams(location.search);
 const laneID=urlParams.get('id');
 const appMode=urlParams.get('mode')==='patient'?'patient':'clinic';
-let conn=null,isConn=false,cto=null,curMode='sloan',stream=null;
+const isSurface=urlParams.has('remote')&&urlParams.get('remote')==='surface';
+let conn=null,isConn=false,cto=null,curMode='sloan',stream=null,curPatient=null;
+
+// Surface remote mode: larger buttons, no mode tabs, auto-reconnect
+if(isSurface){document.body.classList.add('surface')}
 
 // Patient-mode setup: hide Sloan tab, default to gabor
 if(appMode==='patient'){
@@ -187,9 +202,9 @@ function initConn(){
     cto=setTimeout(()=>{if(!isConn)showErr('Timed out')},15000);
     p.on('open',()=>{
         setSt('','Syncing');conn=p.connect(laneID);
-        conn.on('open',()=>{clearTimeout(cto);isConn=true;setSt('ok','Linked');document.getElementById('rbtn').style.display='none'});
+        conn.on('open',()=>{clearTimeout(cto);isConn=true;reconnectAttempts=0;setSt('ok','Linked');document.getElementById('rbtn').style.display='none'});
         conn.on('data',onMsg);
-        conn.on('close',()=>{if(isConn){isConn=false;showErr('Disconnected')}});
+        conn.on('close',()=>{if(isConn){isConn=false;if(isSurface){tryReconnect()}else{showErr('Disconnected')}}});
         conn.on('error',()=>showErr('Error'));
     });
     p.on('error',e=>{clearTimeout(cto);showErr(e.type==='peer-unavailable'?'Lane not found':e.type)});
@@ -202,6 +217,31 @@ function onMsg(d){
     if(d.type==='tutStep')renderTabletTutStep(d);
     if(d.type==='testStart')exitTutorial();
     if(d.type==='plotImage')showPlotImage(d.url);
+    if(d.type==='patientId'){
+        curPatient=d.patientId;
+        var badge=document.getElementById('patient-badge');
+        if(badge){badge.textContent=d.patientId;badge.style.display='inline-block'}
+        var sp=document.getElementById('sp-patient');
+        if(sp)sp.textContent=d.patientId;
+    }
+}
+
+function newPatient(){
+    toggleSettings();
+    curPatient=null;
+    var badge=document.getElementById('patient-badge');
+    if(badge){badge.textContent='';badge.style.display='none'}
+    sendCmd('restart');
+}
+
+// Auto-reconnect for Surface remote
+var reconnectAttempts=0;
+function tryReconnect(){
+    if(isConn||!laneID)return;
+    reconnectAttempts++;
+    var delay=Math.min(1000*Math.pow(2,reconnectAttempts-1),30000);
+    setSt('','Reconnecting ('+reconnectAttempts+')...');
+    setTimeout(function(){if(!isConn)initConn()},delay);
 }
 
 function send(v){
