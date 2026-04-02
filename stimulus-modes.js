@@ -35,8 +35,9 @@ export function createMode(mode) {
 // ─── Gabor Gratings (5-AFC: 4 orientations + "no target") ───────────────────
 
 function createGaborMode() {
-    const labels = ['↑', '→', '↗', '↖', '✕'];
-    const keys   = ['up', 'right', 'upright', 'upleft', 'none'];
+    // Clock-position labels: 12:00=0°, 1:30=45°, 3:00=90°, 4:30=135°, Can't see
+    const labels = ['12:00', '1:30', '3:00', '4:30', 'Can\'t see'];
+    const keys   = ['up', 'upright', 'right', 'upleft', 'none'];
 
     let currentAngle = 0;
 
@@ -62,9 +63,10 @@ function createGaborMode() {
         },
 
         checkAnswer(response) {
-            // "none" = patient can't see the target → incorrect (strong threshold signal)
+            // "none" = patient can't see the target → always incorrect (threshold signal)
+            // A gabor patch is ALWAYS displayed; "can't see" is ground truth
             if (response === 'none') return false;
-            const map = { up: 0, right: 90, upright: 45, upleft: 135 };
+            const map = { up: 0, upright: 45, right: 90, upleft: 135 };
             return map[response] === currentAngle;
         }
     };

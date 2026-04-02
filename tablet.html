@@ -98,7 +98,7 @@ body.surface .tabs{display:none}
 body.surface .lb{font-size:1.5rem;border-radius:16px}
 body.surface .lpad{width:min(92vw,420px)}
 body.surface .dpad{width:min(80vw,320px);height:min(80vw,320px)}
-body.surface .db{border-radius:18px;font-size:1.8rem}
+body.surface .db{border-radius:18px;font-size:1.2rem}
 body.surface .hdr{padding:10px 20px 4px}
 body.surface .brand{font-size:.75rem}
 body.surface .patient-badge{display:inline-block;font-family:var(--m);font-size:.55rem;color:var(--a);background:var(--as);padding:3px 10px;border-radius:4px;margin-left:10px;letter-spacing:.5px}
@@ -275,15 +275,15 @@ function switchPad(m){
     const noneBtn=document.getElementById('btn-none');
     dbtns.forEach(b=>{
         if(m==='gabor'){
-            // Gabor: 4 orientations + center "No Target" button
-            if(b.dataset.p==='t'){b.textContent='↑';b.onclick=()=>send('up');b.style.transform=''}
-            if(b.dataset.p==='r'){b.textContent='↗';b.onclick=()=>send('upright');b.style.transform=''}
-            if(b.dataset.p==='b'){b.textContent='↖';b.onclick=()=>send('upleft');b.style.transform=''}
-            if(b.dataset.p==='l'){b.textContent='→';b.onclick=()=>send('right');b.style.transform=''}
+            // Gabor: 4 clock-position orientations + "Can't see"
+            if(b.dataset.p==='t'){b.textContent='12:00';b.onclick=()=>send('up');b.style.fontSize='0.8rem'}
+            if(b.dataset.p==='r'){b.textContent='1:30';b.onclick=()=>send('upright');b.style.fontSize='0.8rem'}
+            if(b.dataset.p==='b'){b.textContent='4:30';b.onclick=()=>send('upleft');b.style.fontSize='0.8rem'}
+            if(b.dataset.p==='l'){b.textContent='3:00';b.onclick=()=>send('right');b.style.fontSize='0.8rem'}
             if(b.dataset.p==='c'){
-                b.textContent='✕';b.onclick=()=>send('none');
+                b.textContent='Can\'t\nsee';b.onclick=()=>send('none');
                 b.style.pointerEvents='auto';b.style.opacity='1';
-                b.style.fontSize='1.4rem';b.style.color='var(--t2)';
+                b.style.fontSize='0.6rem';b.style.color='var(--t2)';b.style.whiteSpace='pre-line';
             }
         } else {
             // Tumbling E: 4 cardinal directions, center disabled
