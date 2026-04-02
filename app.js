@@ -132,6 +132,22 @@ function initMode(modeId) {
         psychometricSlope: mode.psychometricSlope
     });
 
+    // Load informative prior from previous visit (clinic mode)
+    if (isClinicMode() && patientId) {
+        getLatestSession(patientId).then(prev => {
+            if (prev && prev.posterior && prev.mode === modeId && engine.trialCount === 0) {
+                engine.loadPrior(prev.posterior);
+                const priorEl = document.getElementById('prior-status');
+                if (priorEl) {
+                    const d = new Date(prev.timestamp).toLocaleDateString();
+                    priorEl.textContent = 'Prior: ' + d;
+                    priorEl.style.display = 'inline';
+                }
+                console.log('[App] Loaded prior from', prev.timestamp);
+            }
+        }).catch(() => {});
+    }
+
     testComplete = false;
     testStarted  = false;
     currentStim  = null;

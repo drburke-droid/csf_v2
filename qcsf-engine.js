@@ -453,6 +453,48 @@ export class QCSFEngine {
         };
     }
 
+    // ── Prior Management ──────────────────────────────────────────────────────
+
+    /** Return a copy of the current posterior (for saving to database). */
+    getPrior() {
+        return new Float64Array(this.prior);
+    }
+
+    /**
+     * Load an informative prior from a previous session, blended with the
+     * default prior to avoid over-confidence if vision has changed.
+     *
+     * Must be called after construction but before the first selectStimulus().
+     *
+     * @param {Float64Array} priorArray – posterior from a previous session
+     * @param {number} alpha – blending weight for informative prior (default 0.7)
+     */
+    loadPrior(priorArray, alpha = 0.7) {
+        if (priorArray.length !== this.nParams) {
+            console.warn('[Engine] Prior length mismatch:', priorArray.length, 'vs', this.nParams);
+            return;
+        }
+        // Verify the incoming prior sums to ~1
+        let inSum = 0;
+        for (let h = 0; h < this.nParams; h++) inSum += priorArray[h];
+        if (inSum < 0.01) {
+            console.warn('[Engine] Prior sums to ~0, ignoring.');
+            return;
+        }
+
+        // Blend: alpha * informative + (1-alpha) * default
+        const defaultPrior = this.prior; // current (default) prior
+        for (let h = 0; h < this.nParams; h++) {
+            this.prior[h] = alpha * (priorArray[h] / inSum) + (1 - alpha) * defaultPrior[h];
+        }
+        // Renormalize
+        let total = 0;
+        for (let h = 0; h < this.nParams; h++) total += this.prior[h];
+        if (total > 0) {
+            for (let h = 0; h < this.nParams; h++) this.prior[h] /= total;
+        }
+    }
+
     /** Generate parametric curve {freq, logS} points for plotting. */
     getCSFCurve(params) {
         const p     = params || this.getExpectedEstimate();
