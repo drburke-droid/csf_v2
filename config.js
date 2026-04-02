@@ -38,6 +38,9 @@ export function buildExplorerURL(csfParams) {
     return url.toString();
 }
 
+/** Calibration stale threshold: infinite for clinic, 24hr for patient */
+export const CAL_STALE_MS = APP_MODE === 'clinic' ? Infinity : 24 * 60 * 60 * 1000;
+
 /** Preserve mode param when navigating between pages */
 export function withMode(href) {
     if (APP_MODE === 'patient') {

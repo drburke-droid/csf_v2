@@ -16,7 +16,7 @@ import { drawCSFPlot }   from './csf-plot.js';
 import { initSync }      from './peer-sync.js';
 import { initKeyboard }  from './keyboard.js';
 import { computeResult } from './results.js';
-import { isPatientMode, isClinicMode, buildExplorerURL, withMode } from './config.js';
+import { isPatientMode, isClinicMode, buildExplorerURL, withMode, CAL_STALE_MS } from './config.js';
 
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -61,7 +61,7 @@ if (!isCalibrated()) {
 
 const cal = getCalibrationData();
 
-if (isCalibrationStale()) {
+if (isCalibrationStale(CAL_STALE_MS)) {
     const w = document.getElementById('stale-cal-warning');
     if (w) w.style.display = 'block';
 }

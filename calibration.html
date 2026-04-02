@@ -298,7 +298,7 @@
     </div>
 
     <div class="existing-banner" id="existing-banner" style="display:none;">
-        Calibration data found. <a id="skip-link" href="index.html">Skip to test →</a>
+        Calibration data found<span id="cal-age-text"></span>. <a id="skip-link" href="index.html">Skip to test →</a>
     </div>
 
     <!-- Patient-mode notice -->
@@ -366,6 +366,7 @@
                     <option value="cm">cm</option>
                     <option value="in">inches</option>
                 </select>
+                <button onclick="document.getElementById('dist-val').value='25';document.getElementById('dist-unit').value='ft';" style="margin-left:10px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--accent);cursor:pointer;font-size:0.75rem;font-family:var(--mono);">25 ft (clinic)</button>
                 <div class="error-msg" id="dist-error"></div>
             </div>
             <label class="check-row">
@@ -453,6 +454,14 @@
     if (!isNaN(ePx) && !isNaN(eD) && ePx > 0 && eD > 0) {
         document.getElementById('existing-banner').style.display = 'block';
         document.getElementById('skip-link').href = 'index.html' + modeSuffix;
+        // Show calibration age
+        const calTs = localStorage.getItem('cal_timestamp');
+        if (calTs) {
+            const age = Date.now() - new Date(calTs).getTime();
+            const days = Math.floor(age / (24*60*60*1000));
+            const ageStr = days === 0 ? 'today' : days === 1 ? 'yesterday' : days + ' days ago';
+            document.getElementById('cal-age-text').textContent = ' (last calibrated ' + ageStr + ')';
+        }
         const eG = localStorage.getItem('user_gamma_grey');
         if (eG) gammaSlider.value = eG;
         sizeSlider.value = ePx * 85.6;

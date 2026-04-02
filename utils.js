@@ -41,8 +41,21 @@ export function getCalibrationData() {
 
 /** Check if calibration is older than the given threshold (ms). */
 export function isCalibrationStale(maxAgeMs = 24 * 60 * 60 * 1000) {
+    if (!isFinite(maxAgeMs)) return false; // Infinity = never stale (clinic mode)
     const ts = localStorage.getItem('cal_timestamp');
     if (!ts) return true; // no timestamp = treat as stale
     const age = Date.now() - new Date(ts).getTime();
     return age > maxAgeMs;
+}
+
+/** Get the age of the current calibration as a human-readable string, or null. */
+export function getCalibrationAge() {
+    const ts = localStorage.getItem('cal_timestamp');
+    if (!ts) return null;
+    const date = new Date(ts);
+    const age = Date.now() - date.getTime();
+    const days = Math.floor(age / (24 * 60 * 60 * 1000));
+    if (days === 0) return 'today';
+    if (days === 1) return 'yesterday';
+    return days + ' days ago';
 }
