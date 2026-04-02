@@ -38,12 +38,16 @@
 
 /* ─── Reveal overlay ─── */
 .csf-explorer-root .reveal-wrap{position:relative;overflow:hidden}
-.csf-explorer-root .reveal-overlay{position:absolute;left:0;right:0;top:0;background:linear-gradient(to bottom,#0a0a0c 0%,#0a0a0c 90%,rgba(10,10,12,0) 100%);transition:height .4s cubic-bezier(.22,.68,0,1.04);cursor:grab;touch-action:none;z-index:10;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:24px 20px 32px;text-align:center;user-select:none;-webkit-user-select:none}
+.csf-explorer-root .reveal-overlay{position:absolute;left:0;right:0;top:0;background:linear-gradient(to bottom,#0a0a0c 0%,#0a0a0c 88%,rgba(10,10,12,0) 100%);transition:height .4s cubic-bezier(.22,.68,0,1.04);cursor:grab;touch-action:none;z-index:10;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:24px 20px 32px;text-align:center;user-select:none;-webkit-user-select:none;overflow:hidden}
 .csf-explorer-root .reveal-overlay:active{cursor:grabbing}
+.csf-explorer-root .reveal-overlay .reveal-content{transition:opacity .3s}
 .csf-explorer-root .reveal-overlay .reveal-title{font-size:clamp(1rem,2.5vw,1.4rem);font-weight:500;color:var(--t1);margin-bottom:10px;line-height:1.4}
 .csf-explorer-root .reveal-overlay .reveal-body{font-size:clamp(.75rem,1.2vw,.88rem);color:var(--t2);max-width:520px;line-height:1.65;font-weight:300;margin-bottom:16px}
-.csf-explorer-root .reveal-overlay .reveal-cta{font-family:var(--m);font-size:.78rem;color:var(--a);opacity:.8;animation:revealPulse 2s ease-in-out infinite}
-@keyframes revealPulse{0%,100%{opacity:.5;transform:translateY(0)}50%{opacity:1;transform:translateY(-4px)}}
+.csf-explorer-root .reveal-handle{display:flex;align-items:center;justify-content:center;gap:8px;padding:6px 20px;cursor:grab;white-space:nowrap}
+.csf-explorer-root .reveal-handle:active{cursor:grabbing}
+.csf-explorer-root .reveal-handle .handle-bar{width:40px;height:4px;border-radius:2px;background:rgba(255,255,255,.2)}
+.csf-explorer-root .reveal-handle .handle-text{font-family:var(--m);font-size:.72rem;color:var(--a);opacity:.7;animation:revealPulse 2s ease-in-out infinite}
+@keyframes revealPulse{0%,100%{opacity:.5;transform:translateY(0)}50%{opacity:.9;transform:translateY(-3px)}}
 
 /* ─── Controls ─── */
 .csf-explorer-root .controls{display:flex;flex-wrap:wrap;align-items:center;gap:14px;width:100%;opacity:0;animation:settleUp var(--settle) var(--ez) .35s forwards}
@@ -176,22 +180,26 @@ body.embed .csf-explorer-root .ref-section{padding-top:clamp(10px,2vw,16px)}
 
   <div class="profile-pills" id="profile-pills"></div>
 
+  <div class="canvas-wrap">
+    <div class="reveal-wrap" id="reveal-wrap">
+      <canvas id="csf-canvas"></canvas>
+      <div class="reveal-overlay" id="reveal-overlay">
+        <div class="reveal-content" id="reveal-content">
+          <div class="reveal-title">This is all most people ask about</div>
+          <div class="reveal-body">When you get your eyes checked, the number you walk away with - "I'm 20/20" - only tests one thing: the finest detail you can read in perfect, black-on-white contrast. Look at the colored lines crossing the axis below. Each one represents a different eye:<br><br><span style="color:#00ffcc;font-weight:500">Green</span> - Young adult, slightly better than 20/20<br><span style="color:#ff6b6b;font-weight:500">Red</span> - Early cataract, still passes 20/20<br><span style="color:#fbbf24;font-weight:500">Yellow</span> - Uncorrected myope, around 20/40<br><span style="color:#c084fc;font-weight:500">Purple</span> - Multifocal IOL, passes 20/20<br><br>Three of these four pass the eye chart. But like an iceberg, there is far more beneath the surface.</div>
+        </div>
+        <div class="reveal-handle" id="reveal-handle">
+          <span class="handle-text" id="handle-text">&uarr; Drag up to reveal what the eye chart misses</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="profile-info" id="profile-info">
     <div class="profile-info-name" id="profile-info-name"></div>
     <div class="profile-info-stats" id="profile-info-stats"></div>
     <div class="profile-info-desc" id="profile-info-desc"></div>
     <div class="profile-info-refs" id="profile-info-refs"></div>
-  </div>
-
-  <div class="canvas-wrap">
-    <div class="reveal-wrap" id="reveal-wrap">
-      <canvas id="csf-canvas"></canvas>
-      <div class="reveal-overlay" id="reveal-overlay">
-        <div class="reveal-title">This is all most people ask about</div>
-        <div class="reveal-body">When you get your eyes checked, the number you walk away with - "I'm 20/20" - only tests one thing: the finest detail you can read in perfect, black-on-white contrast. Look at the colored lines crossing the axis below. Each one represents a different eye:<br><br><span style="color:#00ffcc;font-weight:500">Green</span> - Young adult, slightly better than 20/20<br><span style="color:#ff6b6b;font-weight:500">Red</span> - Early cataract, still passes 20/20<br><span style="color:#fbbf24;font-weight:500">Yellow</span> - Uncorrected myope, around 20/40<br><span style="color:#c084fc;font-weight:500">Purple</span> - Multifocal IOL, passes 20/20<br><br>Three of these four pass the eye chart. But like an iceberg, there is far more beneath the surface.</div>
-        <div class="reveal-cta" id="reveal-cta">&uarr; Drag up to reveal what the eye chart misses &uarr;</div>
-      </div>
-    </div>
   </div>
 
   <div class="controls">
@@ -1213,34 +1221,49 @@ if (sp.has('embed')) document.body.classList.add('embed');
 (function() {
     var overlay = document.getElementById('reveal-overlay');
     var wrap = document.getElementById('reveal-wrap');
+    var content = document.getElementById('reveal-content');
+    var handleText = document.getElementById('handle-text');
     if (!overlay || !wrap) return;
 
-    var revealed = false;
-    var overlayPct = 82; // starts covering 82% of the canvas (shows bottom ~18% = x-axis + curve tips)
+    var MIN_PCT = 6; // retracted state — just the handle bar visible
+    var MAX_PCT = 90; // initial state — nearly fully covered
+    var overlayPct = MAX_PCT;
+    var isOpen = true; // true = covering the chart
 
     function setOverlay(pct) {
-        overlayPct = Math.max(0, Math.min(95, pct));
+        overlayPct = Math.max(MIN_PCT, Math.min(MAX_PCT, pct));
         overlay.style.height = overlayPct + '%';
-        if (overlayPct <= 5) {
-            revealed = true;
-            overlay.style.display = 'none';
+        // Fade content when mostly retracted
+        if (content) content.style.opacity = overlayPct < 25 ? '0' : '1';
+        // Update handle text
+        if (handleText) {
+            if (overlayPct <= MIN_PCT + 2) {
+                handleText.innerHTML = '&darr; Pull down to cover';
+                isOpen = false;
+            } else if (overlayPct >= MAX_PCT - 5) {
+                handleText.innerHTML = '&uarr; Drag up to reveal what the eye chart misses';
+                isOpen = true;
+            }
         }
     }
 
-    setOverlay(overlayPct);
+    setOverlay(MAX_PCT);
 
     var dragging = false;
+    var didDrag = false;
     var startY = 0;
     var startPct = 0;
 
     overlay.addEventListener('mousedown', function(e) {
-        dragging = true; startY = e.clientY; startPct = overlayPct;
+        dragging = true; didDrag = false; startY = e.clientY; startPct = overlayPct;
         overlay.style.transition = 'none';
+        if (content) content.style.transition = 'none';
         e.preventDefault();
     });
     window.addEventListener('mousemove', function(e) {
         if (!dragging) return;
-        var dy = startY - e.clientY; // positive = dragging up
+        didDrag = true;
+        var dy = startY - e.clientY;
         var canvasH = wrap.getBoundingClientRect().height;
         var deltaPct = (dy / canvasH) * 100;
         setOverlay(startPct - deltaPct);
@@ -1249,16 +1272,21 @@ if (sp.has('embed')) document.body.classList.add('embed');
         if (!dragging) return;
         dragging = false;
         overlay.style.transition = '';
-        if (overlayPct < 30) setOverlay(0); // snap fully open
+        if (content) content.style.transition = '';
+        // Snap: if dragged past halfway, snap to the nearer end
+        if (overlayPct < (MAX_PCT + MIN_PCT) / 2) setOverlay(MIN_PCT);
+        else setOverlay(MAX_PCT);
     });
 
     overlay.addEventListener('touchstart', function(e) {
-        dragging = true; startY = e.touches[0].clientY; startPct = overlayPct;
+        dragging = true; didDrag = false; startY = e.touches[0].clientY; startPct = overlayPct;
         overlay.style.transition = 'none';
+        if (content) content.style.transition = 'none';
         e.preventDefault();
     }, { passive: false });
     window.addEventListener('touchmove', function(e) {
         if (!dragging) return;
+        didDrag = true;
         var dy = startY - e.touches[0].clientY;
         var canvasH = wrap.getBoundingClientRect().height;
         var deltaPct = (dy / canvasH) * 100;
@@ -1268,15 +1296,18 @@ if (sp.has('embed')) document.body.classList.add('embed');
         if (!dragging) return;
         dragging = false;
         overlay.style.transition = '';
-        if (overlayPct < 30) setOverlay(0);
+        if (content) content.style.transition = '';
+        if (overlayPct < (MAX_PCT + MIN_PCT) / 2) setOverlay(MIN_PCT);
+        else setOverlay(MAX_PCT);
     });
 
-    // Also allow click to reveal
+    // Click (without drag) toggles open/closed
     overlay.addEventListener('click', function() {
-        if (!dragging) {
-            overlay.style.transition = 'height .8s cubic-bezier(.22,.68,0,1.04)';
-            setOverlay(0);
-        }
+        if (didDrag) return;
+        overlay.style.transition = 'height .6s cubic-bezier(.22,.68,0,1.04)';
+        if (content) content.style.transition = 'opacity .3s';
+        if (overlayPct > MIN_PCT + 5) setOverlay(MIN_PCT);
+        else setOverlay(MAX_PCT);
     });
 })();
 
