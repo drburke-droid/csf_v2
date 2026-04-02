@@ -765,7 +765,7 @@ function drawAll() {
     var nSamples = 400;
     var demandPts = [];
     var featureDemandCurves = obj.features.map(function() { return []; });
-    var featureColors = ['#5B9CF5', '#F5A623', '#A78BFA'];
+    var featureColors = ['#1a6dd4', '#c47a00', '#7c3aed'];
 
     for (var i = 0; i < nSamples; i++) {
         var lf = lfMin + (lfMax - lfMin) * i / (nSamples - 1);
@@ -1308,7 +1308,7 @@ function updateExplanation(obj, distMeters) {
     if (!el) return;
     var profile = PROFILES[currentProfileIndex];
     var result = computeVerdict(obj, distMeters, profile);
-    var featureColors = ['#5B9CF5', '#F5A623', '#A78BFA'];
+    var featureColors = ['#1a6dd4', '#c47a00', '#7c3aed'];
     var lfMin = -0.3, lfMax = 1.75;
     var fMin = Math.pow(10, lfMin);
     var fMax = Math.pow(10, lfMax);
