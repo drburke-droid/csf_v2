@@ -38,7 +38,7 @@
 
 /* ─── Reveal overlay ─── */
 .csf-explorer-root .reveal-wrap{position:relative;overflow:hidden}
-.csf-explorer-root .reveal-overlay{position:absolute;left:4px;right:4px;top:4px;background:#0e0e12;border:2px solid rgba(255,255,255,.45);border-radius:14px;box-shadow:0 4px 30px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.08) inset;transition:height .4s cubic-bezier(.22,.68,0,1.04);cursor:grab;touch-action:none;z-index:10;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:28px 28px 12px;text-align:justify;user-select:none;-webkit-user-select:none;overflow:hidden}
+.csf-explorer-root .reveal-overlay{position:absolute;left:0;right:0;top:0;background:#0e0e12;border-bottom:2.5px solid rgba(255,255,255,.5);box-shadow:0 6px 30px rgba(0,0,0,.7);transition:height .4s cubic-bezier(.22,.68,0,1.04);cursor:grab;touch-action:none;z-index:10;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:28px 28px 12px;text-align:justify;user-select:none;-webkit-user-select:none;overflow:hidden}
 .csf-explorer-root .reveal-overlay:active{cursor:grabbing}
 .csf-explorer-root .reveal-overlay .reveal-content{transition:opacity .3s;display:flex;flex-direction:column;align-items:center}
 .csf-explorer-root .reveal-overlay .reveal-title{font-size:clamp(1.2rem,3vw,1.7rem);font-weight:600;color:#fff;margin-bottom:14px;line-height:1.35;text-align:center;letter-spacing:-.01em}
@@ -989,6 +989,78 @@ function drawAll() {
     ctx.lineWidth = 1;
     ctx.strokeRect(pad.left, pad.top, pW, pH);
 
+    // ── Acuity cutoff line and dots ──
+    // Draw a prominent horizontal line at sensitivity=1 (the "vision line")
+    var yVisionLine = tY(0); // logS=0 means sensitivity=1
+    if (yVisionLine >= pad.top && yVisionLine <= pad.top + pH) {
+        // Dashed vision line
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([8, 6]);
+        ctx.beginPath();
+        ctx.moveTo(pad.left, yVisionLine);
+        ctx.lineTo(pad.left + pW, yVisionLine);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+
+        // Label on the left
+        ctx.save();
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.font = '500 ' + (isMobile ? '9' : '10') + 'px "DM Sans", sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('eye chart limit', pad.left + 6, yVisionLine - 8);
+        ctx.restore();
+    }
+
+    // Draw colored cutoff dots where each profile crosses sensitivity=1
+    PROFILES.forEach(function(profile) {
+        // Binary search for the frequency where profileCSF = 0 (high-freq cutoff)
+        var lo = profile.f, hi = 60;
+        for (var iter = 0; iter < 30; iter++) {
+            var mid = (lo + hi) / 2;
+            if (profileCSF(mid, profile) > 0) lo = mid;
+            else hi = mid;
+        }
+        var cutoffCpd = (lo + hi) / 2;
+        var cutoffLogF = Math.log10(cutoffCpd);
+        if (cutoffLogF < lfMin || cutoffLogF > lfMax) return;
+
+        var dotX = tX(cutoffLogF);
+        var dotY = tY(0);
+        var dotR = isMobile ? 8 : 7;
+
+        // Glow
+        ctx.save();
+        ctx.fillStyle = profile.color;
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath();
+        ctx.arc(dotX, dotY, dotR + 6, 0, Math.PI * 2);
+        ctx.fill();
+        // Solid dot
+        ctx.globalAlpha = 1;
+        ctx.beginPath();
+        ctx.arc(dotX, dotY, dotR, 0, Math.PI * 2);
+        ctx.fill();
+        // White center
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(dotX, dotY, dotR * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Snellen label below the dot
+        var snellenDenom = Math.round(600 / cutoffCpd);
+        var snellenLabel = '20/' + snellenDenom;
+        ctx.save();
+        ctx.fillStyle = profile.color;
+        ctx.font = '600 ' + (isMobile ? '10' : '11') + 'px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(snellenLabel, dotX, dotY + dotR + 14);
+        ctx.restore();
+    });
+
     // ── Legend (desktop only) ──
     if (!isMobile) {
         var legX = pad.left + pW - 200, legY = pad.top + 10;
@@ -1226,7 +1298,7 @@ if (sp.has('embed')) document.body.classList.add('embed');
     if (!overlay || !wrap) return;
 
     var MIN_PCT = 6; // retracted state — just the handle bar visible
-    var MAX_PCT = 90; // initial state — nearly fully covered
+    var MAX_PCT = 78; // initial state — shows bottom ~22% with x-axis + cutoff dots
     var overlayPct = MAX_PCT;
     var isOpen = true; // true = covering the chart
 
