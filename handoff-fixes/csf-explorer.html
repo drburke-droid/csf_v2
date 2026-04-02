@@ -137,8 +137,11 @@
 
 /* ─── Reference section ─── */
 .csf-explorer-root .ref-section{width:100%;border-top:1px solid var(--b2);padding-top:clamp(16px,3vw,24px);opacity:0;animation:settleUp var(--settle) var(--ez) .5s forwards}
-.csf-explorer-root .ref-heading{font-size:.75rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:10px}
-.csf-explorer-root .ref-body{font-size:.75rem;color:var(--t2);line-height:1.7;font-weight:300}
+.csf-explorer-root .ref-heading{font-size:.75rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:0;cursor:pointer;display:flex;align-items:center;gap:8px}
+.csf-explorer-root .ref-heading::after{content:'+';font-size:.9rem;font-weight:300;transition:transform .2s}
+.csf-explorer-root .ref-heading.open::after{content:'\2212'}
+.csf-explorer-root .ref-body{font-size:.75rem;color:var(--t2);line-height:1.7;font-weight:300;display:none;margin-top:10px}
+.csf-explorer-root .ref-body.open{display:block}
 .csf-explorer-root .ref-body p{margin-bottom:8px}
 .csf-explorer-root .ref-body p:last-child{margin-bottom:0}
 .csf-explorer-root .ref-body strong{color:var(--t2);font-weight:500}
@@ -251,7 +254,7 @@ body.embed .csf-explorer-root .ref-section{padding-top:clamp(10px,2vw,16px)}
   </div>
 
   <div class="ref-section">
-    <div class="ref-heading">How this data was derived</div>
+    <div class="ref-heading" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">How this data was derived</div>
     <div class="ref-body">
       <p><strong>CSF model</strong> - Log-parabola contrast sensitivity function from Lesmes et al. (2010), "Bayesian adaptive estimation of the contrast sensitivity function: The quick CSF method." The four parameters (gain, peak frequency, bandwidth, truncation) define the curve shape. The multifocal IOL profile adds a Gaussian dip to model diffractive energy loss at mid-frequencies.</p>
       <p><strong>Sample profiles</strong> - The four profiles are illustrative examples based on published normative and clinical data; they do not represent fits to individual patient data. Young adult: Owsley, Sekuler &amp; Siemsen (1983), "Contrast sensitivity throughout adulthood," <em>Vision Research</em>; Lesmes et al. (2010). Early cataract: Hess &amp; Woo (1978), "Vision through cataracts," <em>IOVS</em>; Elliott &amp; Situ (1998), "Visual acuity versus letter contrast sensitivity in early cataract," <em>Vision Research</em>. Uncorrected myopia: optical defocus effects per Atchison &amp; Smith (2000), <em>Optics of the Human Eye</em>. Multifocal IOL: Mont&eacute;s-Mic&oacute; &amp; Ali&oacute; (2003), "Distance and near contrast sensitivity function after multifocal intraocular lens implantation," <em>J Cataract Refract Surg</em>; Leyland &amp; Zinicola (2003), "Multifocal versus monofocal intraocular lenses in cataract surgery," <em>Ophthalmology</em>.</p>
