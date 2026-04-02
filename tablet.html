@@ -94,14 +94,33 @@ body{background:var(--c);color:var(--t1);font-family:var(--f);-webkit-font-smoot
 .co .cc:active{transform:scale(.9)}
 .co .cx{position:absolute;top:14px;right:14px;background:rgba(0,0,0,.5);border:0;color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:16px}
 /* ─── Surface Remote Mode ─── */
+/* Flip layout: buttons at top (patient looks over), info at bottom */
+body.surface{flex-direction:column}
 body.surface .tabs{display:none}
-body.surface .lb{font-size:1.5rem;border-radius:16px}
-body.surface .lpad{width:min(92vw,420px)}
-body.surface .dpad{width:min(80vw,320px);height:min(80vw,320px)}
-body.surface .db{border-radius:18px;font-size:1.2rem}
-body.surface .hdr{padding:10px 20px 4px}
-body.surface .brand{font-size:.75rem}
-body.surface .patient-badge{display:inline-block;font-family:var(--m);font-size:.55rem;color:var(--a);background:var(--as);padding:3px 10px;border-radius:4px;margin-left:10px;letter-spacing:.5px}
+body.surface .hdr{padding:6px 16px 2px;order:1}
+body.surface .brand{font-size:.65rem}
+body.surface .prog{order:3;padding:4px 0}
+body.surface .ring{width:36px;height:36px}
+body.surface .ring svg{width:36px;height:36px}
+body.surface .ring .fg{stroke-dasharray:100.5}
+body.surface .ring .num{font-size:.5rem}
+body.surface .resp{order:0;flex:0 0 auto;align-items:flex-start;justify-content:center;padding:12px 10px 0}
+body.surface .sbar{order:4;padding:6px 16px}
+body.surface .rv{order:2}
+/* D-pad: single row of 5 large buttons */
+body.surface .dpad{display:flex;flex-direction:row;gap:8px;width:100%;height:auto;padding:0 4px}
+body.surface .db{flex:1;aspect-ratio:auto;height:clamp(70px,14vh,110px);border-radius:16px;font-size:clamp(.85rem,2.2vw,1.1rem);font-weight:500;font-family:var(--m);letter-spacing:-.5px}
+body.surface .db:active{transform:scale(.95)}
+body.surface .db[data-p="t"]{grid-column:auto;grid-row:auto}
+body.surface .db[data-p="l"]{grid-column:auto;grid-row:auto}
+body.surface .db[data-p="r"]{grid-column:auto;grid-row:auto}
+body.surface .db[data-p="b"]{grid-column:auto;grid-row:auto}
+body.surface .db[data-p="c"]{grid-column:auto;grid-row:auto}
+/* Sloan pad: also make it row-like */
+body.surface .lpad{display:flex;flex-wrap:wrap;gap:6px;width:100%}
+body.surface .lb{flex:1 0 18%;aspect-ratio:auto;height:clamp(56px,10vh,80px);border-radius:14px;font-size:1.3rem}
+body.surface .patient-badge{display:inline-block;font-family:var(--m);font-size:.5rem;color:var(--a);background:var(--as);padding:2px 8px;border-radius:4px;margin-left:8px;letter-spacing:.5px}
+body.surface .prompt{font-size:.6rem;position:relative;margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -126,11 +145,11 @@ body.surface .patient-badge{display:inline-block;font-family:var(--m);font-size:
 <button class="lb" onclick="send('v')">V</button><button class="lb" onclick="send('z')">Z</button>
 </div>
 <div class="dpad hid" id="pad-d">
-<button class="db" data-p="t" onclick="send('up')">↑</button>
-<button class="db" data-p="l" onclick="send('left')">←</button>
+<button class="db" data-p="t" onclick="send('up')">12:00</button>
+<button class="db" data-p="r" onclick="send('upright')">1:30</button>
 <button class="db" data-p="c" id="btn-none" style="pointer-events:none;opacity:.08;font-size:.5rem;color:var(--t3)">+</button>
-<button class="db" data-p="r" onclick="send('right')">→</button>
-<button class="db" data-p="b" onclick="send('down')">↓</button>
+<button class="db" data-p="l" onclick="send('right')">3:00</button>
+<button class="db" data-p="b" onclick="send('upleft')">4:30</button>
 </div>
 </div>
 
