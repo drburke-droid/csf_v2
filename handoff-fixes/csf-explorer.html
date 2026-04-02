@@ -195,7 +195,7 @@ body.embed .csf-explorer-root .ref-section{padding-top:clamp(10px,2vw,16px)}
         <div class="reveal-content" id="reveal-content">
           <div class="reveal-hero">Most people only want to know if they are 20/20</div>
           <div class="reveal-body reveal-body-desktop">When you get your eyes checked, the number you walk away with only tests one thing: the finest detail you can read in perfect, black-on-white contrast. Look at the colored dots on the line below. Each one marks where a different eye reaches its limit on the standard eye chart. Three of the four pass. But like an iceberg, there is far more to vision beneath this line.</div>
-          <div class="reveal-body reveal-body-mobile">Your eye chart result is just this line</div>
+          <div class="reveal-body reveal-body-mobile">Your eye chart result is just this line. The colored dots show where four different eyes hit their limit.</div>
         </div>
         <div class="reveal-handle" id="reveal-handle">
           <span class="handle-text" id="handle-text">&uarr; drag up to reveal what the eye chart misses</span>
@@ -1108,17 +1108,16 @@ function drawAll() {
     var arrowContainer = document.getElementById('reveal-arrows');
     if (arrowContainer) {
         arrowContainer.innerHTML = '';
-        // Compute positions as percentages, then stagger vertically if too close
+        // Compute positions as percentages, spread close arrows horizontally
         var arrowData = cutoffDots.map(function(dot) {
             return { pct: (dot.x / W) * 100, color: dot.color, name: dot.name.split('(')[0].trim().split(' ')[0] };
         });
-        // Sort by position for overlap detection
         arrowData.sort(function(a, b) { return a.pct - b.pct; });
-        // Assign vertical offsets: alternate when arrows are within 8% of each other
-        for (var ai = 0; ai < arrowData.length; ai++) arrowData[ai].offsetPx = 0;
+        // Nudge arrows apart when too close (within 4%)
         for (var ai = 1; ai < arrowData.length; ai++) {
-            if (arrowData[ai].pct - arrowData[ai - 1].pct < 8) {
-                arrowData[ai].offsetPx = arrowData[ai - 1].offsetPx === 0 ? -26 : 0;
+            if (arrowData[ai].pct - arrowData[ai - 1].pct < 4) {
+                arrowData[ai - 1].pct -= 2;
+                arrowData[ai].pct += 2;
             }
         }
         arrowData.forEach(function(a) {
@@ -1126,7 +1125,6 @@ function drawAll() {
             el.className = 'reveal-arrow';
             el.style.left = a.pct + '%';
             el.style.color = a.color;
-            if (a.offsetPx) el.style.bottom = (-a.offsetPx) + 'px';
             el.innerHTML = '<span class="arrow-label">' + a.name + '</span><span class="arrow-tip">\u25BC</span>';
             arrowContainer.appendChild(el);
         });
